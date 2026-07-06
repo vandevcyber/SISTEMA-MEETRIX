@@ -3,7 +3,10 @@ import { supabase, MASTER_EMAIL, MASTER_PASSWORD } from "./supabaseClient.js";
 import { ensureProfileAndCompany, fetchLeads, fetchCollabs, insertLeads, updateLeadDb, deleteLeadsDb, clearAllLeadsDb, inviteCollaborator, removeCollaboratorDb, uploadMedia, updateProfileFields, fetchGroups, createGroupDb, updateGroupMembersDb, fetchChatMessages, sendChatMessage, subscribeToChat, logExport, fetchExportLogs } from "./db.js";
 import { gerarCodigoExportacao, embutirMarcaDagua } from "./watermark.js";
 
+const LOGO = "data:image/png;base64,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";
 const LOGO_IMG = (size = 32, onDark = false) => ({width: size, height: size, objectFit: "contain", background: onDark ? "#fff" : "transparent", borderRadius: onDark ? 6 : (size > 40 ? 12 : 6), padding: onDark ? 3 : 0, boxSizing: "content-box"});
+
+
 
 /* Dados agora são salvos no Supabase (banco real), não mais no navegador */
 
@@ -19,6 +22,12 @@ const C = {
 const font = "Arial, Helvetica, sans-serif";
 
 /* ═══ DATA ═══ */
+const WHATSAPP_NUMBER = "5571992385455";
+function linkWhatsAppPlano(nomePlano) {
+  const msg = encodeURIComponent(`Olá! Tenho interesse no plano ${nomePlano} da Meetrix.`);
+  return `https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`;
+}
+
 const PLANS = [
   { id: "basic", name: "Basic", price: "R$ 2.000", leads: "30.000", benefits: ["30 mil leads mensais", "Gestão completa de leads", "Funil de vendas (Kanban)", "Distribuição para equipe", "Chat interno com fotos e áudio", "Assistência 24h", "Personalização por nicho"] },
   { id: "scale", name: "Scale", price: "R$ 3.000", leads: "70.000", benefits: ["70 mil leads mensais", "Todos os benefícios do Basic", "Relatórios e dashboard avançados", "Negociações com pipeline financeiro", "Suporte prioritário"] },
@@ -81,10 +90,34 @@ const HELP_ITEMS = [
 ];
 
 /* ═══ UTILS ═══ */
+const HEADER_MAP = {
+  "empresa": "empresa", "razao social": "empresa", "razão social": "empresa", "nome fantasia": "empresa", "razao social/nome": "empresa",
+  "nome": "nome", "contato": "nome", "responsavel": "nome",
+  "cnpj": "cnpj",
+  "email": "email", "e-mail": "email",
+  "tel1": "tel1", "telefone": "tel1", "telefone 1": "tel1", "fone": "tel1", "celular": "tel1",
+  "tel2": "tel2", "telefone 2": "tel2", "fone 2": "tel2",
+  "socio": "socio", "sócio": "socio", "nome do socio": "socio", "nome do sócio": "socio",
+  "cidade": "cidade",
+  "estado": "estado", "uf": "estado",
+  "divida": "divida", "dívida": "divida", "divida total": "divida", "dívida total": "divida",
+  "dividaativa": "dividaAtiva", "divida ativa": "dividaAtiva", "dívida ativa": "dividaAtiva",
+  "cnae": "cnae", "atividade": "cnae", "segmento": "segmento", "nicho": "segmento",
+  "faturamento": "faturamento", "faturamento medio": "faturamento", "faturamento médio": "faturamento",
+  "abertura": "abertura", "data de abertura": "abertura", "data abertura": "abertura",
+  "tributacao": "tributação", "tributação": "tributação", "tipo de tributacao": "tributação", "regime tributario": "tributação",
+  "redesocial": "redeSocial", "rede social": "redeSocial", "instagram": "redeSocial", "linkedin": "redeSocial",
+};
+
+function normalizeHeader(h) {
+  const clean = h.trim().toLowerCase().replace(/['"]/g, "").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  return HEADER_MAP[clean] || HEADER_MAP[h.trim().toLowerCase().replace(/['"]/g, "")] || clean;
+}
+
 function parseCSV(text) {
   const lines = text.trim().split("\n");
   if (lines.length < 2) return [];
-  const headers = lines[0].split(",").map(h => h.trim().replace(/['"]/g, "").toLowerCase());
+  const headers = lines[0].split(",").map(h => normalizeHeader(h));
   return lines.slice(1).map((line, i) => {
     const vals = []; let cur = "", inQ = false;
     for (const ch of line) { if (ch === '"') inQ = !inQ; else if (ch === "," && !inQ) { vals.push(cur.trim()); cur = ""; } else cur += ch; }
@@ -179,7 +212,7 @@ function LandingPage({ onLogin }) {
               <div style={{ fontSize: 22, fontWeight: 800, color: C.accent, margin: "4px 0" }}>{p.price}</div>
               <div style={{ fontSize: 11, color: C.textSec, marginBottom: 14 }}>{p.leads} leads/mes</div>
               {p.benefits.map((b, i) => <div key={i} style={{ fontSize: 11, padding: "3px 0", borderTop: i === 0 ? `1px solid ${C.border}` : "" }}>{b}</div>)}
-              <button onClick={onLogin} style={{ ...sBtn(), width: "100%", marginTop: 14 }}>{p.id === "custom" ? "Fale conosco" : "Contratar"}</button>
+              <a href={linkWhatsAppPlano(p.name)} target="_blank" rel="noopener noreferrer" style={{ ...sBtn(), width: "100%", marginTop: 14, display: "block", textAlign: "center", textDecoration: "none", boxSizing: "border-box" }}>{p.id === "custom" ? "Fale conosco" : "Contratar"}</a>
             </div>
           ))}
         </div>
@@ -451,6 +484,7 @@ function LeadsPage({ leads, setLeads, collabs, isMaster, companyId, empresaNome,
       setPaid(false);
       setPaying(true);
       (async () => {
+        // Confere de verdade no Mercado Pago se o pagamento foi aprovado, antes de liberar
         try {
           const r = await fetch(`/api/mp-check-payment?ref=${mpRef}`);
           const s = await r.json();
@@ -487,23 +521,32 @@ function LeadsPage({ leads, setLeads, collabs, isMaster, companyId, empresaNome,
   const distribuir = nome => { setLeads(prev => prev.map(l => selected.has(l.id) ? { ...l, responsável: nome, etapa: l.etapa === "novo" ? "contactado" : l.etapa, status: "Lead contactado" } : l)); setSelected(new Set()); setShowDist(false); };
   const updateLead = (id, data) => { setLeads(prev => prev.map(l => l.id === id ? { ...l, ...data } : l)); if (detail?.id === id) setDetail(prev => ({ ...prev, ...data })); };
 
+  // Gera o CSV de fato, com marca d'água invisível, e registra o log de exportação
   const gerarEBaixarCSV = async (rows, valorPago = 0, paymentId = null) => {
     const codigo = gerarCodigoExportacao();
     const keys = ["empresa", "nome", "cnpj", "email", "tel1", "tel2", "socio", "cidade", "estado", "segmento", "cnae", "faturamento", "divida", "abertura", "tributação", "status"];
     const csv = [keys.join(","), ...rows.map(r => keys.map((k, i) => {
       let val = r[k] || "";
-      if (i === 0) val = embutirMarcaDagua(val, codigo);
+      if (i === 0) val = embutirMarcaDagua(val, codigo); // marca d'água embutida no campo "empresa"
       return `"${val}"`;
     }).join(","))].join("\n");
     const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" })); a.download = "meetrix-leads.csv"; a.click();
     await logExport({ companyId, empresaNome, userEmail, quantidade: rows.length, valor: valorPago, codigo, paymentId });
   };
 
+  // Master exporta de graça (é ela quem fornece os leads)
   const exportCSVMaster = () => {
     const rows = filtered.filter(l => selected.size === 0 || selected.has(l.id));
     gerarEBaixarCSV(rows, 0, null);
   };
 
+  const limparTodosLeads = async () => {
+    if (!window.confirm(`Tem certeza que deseja apagar TODOS os ${leads.length} leads? Essa ação não pode ser desfeita.`)) return;
+    await clearAllLeadsDb(companyId);
+    setLeads([]);
+  };
+
+  // Cliente precisa pagar antes de exportar (Pix, cartão ou boleto via Mercado Pago)
   const abrirPagamentoExportacao = () => {
     setShowPayment(true);
   };
@@ -514,6 +557,7 @@ function LeadsPage({ leads, setLeads, collabs, isMaster, companyId, empresaNome,
     const externalReference = "exp_" + Date.now() + "_" + Math.random().toString(36).slice(2, 8);
     setPaying(true);
     try {
+      // Guarda os leads selecionados para retomar a exportação quando o usuário voltar do Mercado Pago
       sessionStorage.setItem("meetrix_pending_export", JSON.stringify({
         leadIds: rows.map(r => r.id), valor, companyId, empresaNome, userEmail, externalReference,
       }));
@@ -523,7 +567,7 @@ function LeadsPage({ leads, setLeads, collabs, isMaster, companyId, empresaNome,
       });
       const data = await resp.json();
       if (!resp.ok) throw new Error(data.error || "Erro ao gerar o checkout");
-      window.location.href = data.init_point;
+      window.location.href = data.init_point; // Leva o cliente para a página do Mercado Pago (Pix, cartão ou boleto)
     } catch (e) {
       alert(e.message || "Não foi possível abrir o checkout. Verifique se o Mercado Pago está configurado.");
       setPaying(false);
@@ -543,6 +587,7 @@ function LeadsPage({ leads, setLeads, collabs, isMaster, companyId, empresaNome,
         <div style={{ display: "flex", gap: 8 }}>
           {isMaster && <button onClick={() => setShowImport(true)} style={sBtn()}>Importar CSV</button>}
           {isMaster && <button onClick={exportCSV} style={sBtn(C.green)}>Exportar CSV</button>}
+          {isMaster && leads.length > 0 && <button onClick={limparTodosLeads} style={sBtn(C.red)}>Limpar todos os leads</button>}
           {!isMaster && <button onClick={exportCSV} style={sBtn(C.green)}>Exportar CSV</button>}
         </div>
       </div>
@@ -627,6 +672,7 @@ function LeadsPage({ leads, setLeads, collabs, isMaster, companyId, empresaNome,
         </div>
       </Modal>}
 
+      {/* Modal de pagamento para exportação (Pix, cartão ou boleto) */}
       {showPayment && (
         <Modal title="Exportar leads" onClose={() => setShowPayment(false)}>
           {!paying && !paid && (
@@ -691,6 +737,7 @@ function FunnelPage({ leads, setLeads, collabs }) {
         <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>Funil de Vendas</h2>
         <button onClick={() => setShowNeg(true)} style={sBtn()}>+ Nova Negociação</button>
       </div>
+      {/* Financial KPIs */}
       <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 20 }}>
         {[
           { t: "TOTAL EM NEGOCIACAO", v: fmt(totalNeg), sub: `${inNeg.length} neg. ativas`, c: C.accent },
@@ -706,6 +753,7 @@ function FunnelPage({ leads, setLeads, collabs }) {
         ))}
       </div>
 
+      {/* Funnel visual bar */}
       <div style={{ ...sCard, padding: 18, marginBottom: 20 }}>
         <div style={{ fontSize: 11, fontWeight: 700, color: C.textSec, textTransform: "uppercase", marginBottom: 12 }}>Estágios do Funil</div>
         {FUNNEL.map(f => {
@@ -727,6 +775,7 @@ function FunnelPage({ leads, setLeads, collabs }) {
         })}
       </div>
 
+      {/* Kanban */}
       <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 12 }}>
         {FUNNEL.map(stage => {
           const items = leads.filter(l => l.etapa === stage.id);
@@ -756,6 +805,7 @@ function FunnelPage({ leads, setLeads, collabs }) {
         })}
       </div>
 
+      {/* New Negotiation Modal */}
       {showNeg && <Modal title="Registrar Negociação" onClose={() => setShowNeg(false)}>
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <div><div style={sLabel}>Lead / Cliente *</div><select value={negForm.leadId} onChange={e => setNegForm({...negForm, leadId: e.target.value})} style={sSelect}><option value="">Selecione...</option>{leads.filter(l => l.etapa !== "fechado" && l.etapa !== "negociação").map(l => <option key={l.id} value={l.id}>{l.empresa || l.nome}</option>)}</select></div>
@@ -766,6 +816,7 @@ function FunnelPage({ leads, setLeads, collabs }) {
         </div>
       </Modal>}
 
+      {/* Distribution Modal */}
       {showDist && distLeadId && <Modal title="Distribuir lead" onClose={() => { setShowDist(false); setDistLeadId(null); }}>
         <div style={{ fontSize: 12, color: C.textSec, marginBottom: 14 }}>Selecione o colaborador responsável:</div>
         {collabs.map(c => <button key={c.id} onClick={() => distribuirLead(distLeadId, c.nome)} style={{ ...sCard, padding: "12px 16px", width: "100%", cursor: "pointer", marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center", textAlign: "left" }}><div><div style={{ fontWeight: 600, fontSize: 13 }}>{c.nome}</div><div style={{ fontSize: 11, color: C.textSec }}>{ROLES.find(r => r.id === c.cargo)?.label}</div></div><span style={{ color: C.accent, fontWeight: 600, fontSize: 12 }}>Atribuir</span></button>)}
@@ -861,6 +912,7 @@ function WhatsAppPage() {
         <button onClick={() => { setShowConnect(true); setScanDone(false); setScanning(false); }} style={sBtn()}>+ Nova conexão</button>
       </div>
 
+      {/* Instances */}
       <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 20 }}>
         {instances.map(inst => (
           <div key={inst.id} style={{ ...sCard, padding: "14px 18px", flex: 1, minWidth: 200 }}>
@@ -885,8 +937,10 @@ function WhatsAppPage() {
         )}
       </div>
 
+      {/* Chat area */}
       {instances.length > 0 && (
         <div style={{ display: "flex", gap: 14, height: 420 }}>
+          {/* Conversations list */}
           <div style={{ ...sCard, width: 260, overflow: "hidden", display: "flex", flexDirection: "column" }}>
             <div style={{ padding: "12px 14px", borderBottom: `1px solid ${C.border}`, fontWeight: 700, fontSize: 13, display: "flex", justifyContent: "space-between" }}>
               <span>Conversas</span>
@@ -909,6 +963,7 @@ function WhatsAppPage() {
             </div>
           </div>
 
+          {/* Chat window */}
           <div style={{ ...sCard, flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
             {active ? (<>
               <div style={{ padding: "12px 16px", borderBottom: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -940,6 +995,7 @@ function WhatsAppPage() {
         </div>
       )}
 
+      {/* Connect Modal with QR Code */}
       {showConnect && (
         <Modal title="Conectar WhatsApp" onClose={() => setShowConnect(false)}>
           {!scanning && !scanDone && (
@@ -968,8 +1024,10 @@ function WhatsAppPage() {
             <div style={{ textAlign: "center", padding: "20px 0" }}>
               <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 20 }}>Escaneie o QR Code com seu celular</div>
               <div style={{ background: C.orangeLight, border: `1px solid ${C.orange}`, borderRadius: 6, padding: "8px 14px", marginBottom: 16, fontSize: 11, color: C.orange, fontWeight: 600, textAlign: "left" }}>Protótipo: Na versão de produção, este QR Code será gerado pela Evolution API e funcionará normalmente para conectar seu WhatsApp.</div>
+              {/* Simulated QR Code */}
               <div style={{ width: 200, height: 200, margin: "0 auto", background: C.white, border: `2px solid ${C.text}`, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
                 <svg width="160" height="160" viewBox="0 0 160 160">
+                  {/* Simulated QR pattern */}
                   {Array.from({length: 16}, (_, r) => Array.from({length: 16}, (_, c) => {
                     const filled = ((r + c) % 3 === 0 || (r * c) % 5 === 0 || r < 3 || c < 3 || (r > 12 && c < 3) || (r < 3 && c > 12));
                     return filled ? <rect key={`${r}-${c}`} x={c*10} y={r*10} width="10" height="10" fill={C.text} /> : null;
@@ -1021,6 +1079,7 @@ function ChatPage({ collabs = [], companyId, currentUser, profile, onProfileUpda
 
   const nomeAtual = profile?.nome || currentUser?.email || "Você";
 
+  // Carrega os grupos da empresa; cria "Geral" se não existir nenhum ainda
   useEffect(() => {
     if (!companyId) return;
     (async () => {
@@ -1034,6 +1093,7 @@ function ChatPage({ collabs = [], companyId, currentUser, profile, onProfileUpda
     })();
   }, [companyId]);
 
+  // Carrega mensagens do canal ativo + assina atualizações em tempo real
   useEffect(() => {
     if (!activeChat) return;
     setLoadingMsgs(true);
@@ -1317,6 +1377,7 @@ function NewsPage() {
     <div>
       <h2 style={{ fontSize: 18, fontWeight: 700, margin: "0 0 20px" }}>Mercado e Notícias</h2>
 
+      {/* Currency indicators */}
       <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 20 }}>
         {[
           { l: "Dólar (USD/BRL)", v: "R$ 5,72", ch: "+0,8%", up: true, c: C.blue },
@@ -1332,11 +1393,13 @@ function NewsPage() {
         ))}
       </div>
 
+      {/* Charts */}
       <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 20 }}>
         <MiniChart data={dolarData} color={C.blue} label="Dólar" current="R$ 5,72" change="+4,9%" up={true} />
         <MiniChart data={euroData} color={C.accent} label="Euro" current="R$ 6,28" change="+2,9%" up={true} />
       </div>
 
+      {/* Investments */}
       <div style={{ ...sCard, padding: 18, marginBottom: 20 }}>
         <div style={{ fontSize: 11, fontWeight: 700, color: C.textSec, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 14 }}>Investimentos</div>
         <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
@@ -1354,6 +1417,7 @@ function NewsPage() {
         </div>
       </div>
 
+      {/* News */}
       <div style={{ fontSize: 11, fontWeight: 700, color: C.textSec, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 10 }}>Notícias do dia</div>
       {NEWS_ITEMS.map(n => (
         <div key={n.id} style={{ ...sCard, padding: "14px 20px", marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -1486,7 +1550,7 @@ function MasterPanel() { return (<div><h2 style={{ fontSize: 18, fontWeight: 700
     </div>); }
 
 function AuthPage({ onLoginSuccess, onMasterSuccess, onBack }) {
-  const [mode, setMode] = useState("login");
+  const [mode, setMode] = useState("login"); // login | signup | check-email
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [empresa, setEmpresa] = useState("");
@@ -1496,6 +1560,7 @@ function AuthPage({ onLoginSuccess, onMasterSuccess, onBack }) {
 
   const doLogin = async () => {
     setError(""); setLoading(true);
+    // Conta Master: credenciais fixas, não passam pelo Supabase
     if (email.trim().toLowerCase() === MASTER_EMAIL.toLowerCase() && password === MASTER_PASSWORD) {
       setLoading(false);
       onMasterSuccess();
@@ -1599,6 +1664,7 @@ function SupportChat({ show, onClose, userEmail }) {
   const send = async () => {
     if (!txt.trim()) return;
     setMsgs(prev => [...prev, { id: Date.now(), from: "user", text: txt }]);
+    // Salva a mensagem para a conta Master visualizar
     try {
       await supabase.from("support_messages").insert({ sender_email: userEmail || "desconhecido", message: txt });
     } catch {}
@@ -1609,6 +1675,7 @@ function SupportChat({ show, onClose, userEmail }) {
   return (<div style={{ position: "fixed", bottom: 20, right: 20, width: 340, height: 400, background: C.white, borderRadius: 12, boxShadow: "0 8px 30px rgba(0,0,0,.15)", display: "flex", flexDirection: "column", overflow: "hidden", zIndex: 900, border: `1px solid ${C.border}` }}><div style={{ padding: "12px 16px", background: C.sidebar, color: "#fff", display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ fontWeight: 700, fontSize: 13 }}>Suporte Meetrix</span><button onClick={onClose} style={{ background: "none", border: "none", color: "#fff", fontSize: 16, cursor: "pointer" }}>x</button></div><div style={{ flex: 1, padding: 12, overflowY: "auto", display: "flex", flexDirection: "column", gap: 8 }}>{msgs.map(m => <div key={m.id} style={{ alignSelf: m.from === "user" ? "flex-end" : "flex-start", maxWidth: "80%", background: m.from === "user" ? C.accent : C.bg, color: m.from === "user" ? "#fff" : C.text, padding: "8px 12px", borderRadius: 8, fontSize: 12 }}>{m.text}</div>)}</div><div style={{ padding: "8px 12px", borderTop: `1px solid ${C.border}`, display: "flex", gap: 6 }}><input value={txt} onChange={e => setTxt(e.target.value)} onKeyDown={e => e.key === "Enter" && send()} placeholder="Sua mensagem..." style={{ ...sInput, flex: 1 }} /><button onClick={send} style={sBtn()}>Enviar</button></div></div>);
 }
 
+/* ═══ MASTER SUPPORT INBOX ═══ */
 function MasterSupportInbox() {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -1652,9 +1719,10 @@ export default function App() {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [globalSearch, setGlobalSearch] = useState("");
   const [currentUser, setCurrentUser] = useState(null);
-  const [profile, setProfile] = useState(null);
+  const [profile, setProfile] = useState(null); // { company_id, cargo, nome, ... }
   const [loadingData, setLoadingData] = useState(false);
 
+  // Depois do login (não-master), garante perfil/empresa e carrega os dados reais
   const handleLoginSuccess = async (user) => {
     setCurrentUser(user);
     setLoadingData(true);
@@ -1679,9 +1747,10 @@ export default function App() {
 
   const prevLeadsRef = useRef(null);
 
+  // Sincroniza automaticamente qualquer mudança nos leads com o Supabase
   useEffect(() => {
     if (!profile || loadingData || role === "master") return;
-    if (prevLeadsRef.current === null) { prevLeadsRef.current = leads; return; }
+    if (prevLeadsRef.current === null) { prevLeadsRef.current = leads; return; } // pula a carga inicial
     const prev = prevLeadsRef.current;
     const prevMap = new Map(prev.map(l => [l.id, l]));
     const currIds = new Set(leads.map(l => l.id));
@@ -1728,6 +1797,8 @@ export default function App() {
 
   const cargo = profile?.cargo || "admin";
 
+
+  // Permissões por cargo: quais páginas cada tipo de colaborador pode ver
   const PERMISSIONS = {
     admin: ["dashboard", "leads", "funil", "negociações", "equipe", "whatsapp", "chat", "notícias", "pagamentos", "ajuda", "settings"],
     gestor: ["dashboard", "leads", "funil", "negociações", "equipe", "whatsapp", "chat", "ajuda", "settings"],
@@ -1747,6 +1818,7 @@ export default function App() {
     ? [{ id: "master", label: "Painel Master" }, { id: "leads", label: "Leads" }, { id: "negociações", label: "Negociações" }, { id: "settings", label: "Configurações" }]
     : allMenuItems.filter(m => (PERMISSIONS[cargo] || PERMISSIONS.admin).includes(m.id));
 
+  // Colaboradores (sdr/bdr) veem só os leads atribuídos a eles
   const visibleLeads = (role === "colaborador" && (cargo === "sdr" || cargo === "bdr"))
     ? leads.filter(l => l.responsavel === profile?.nome)
     : leads;
@@ -1781,13 +1853,6 @@ export default function App() {
             );
           })}
         </div>
-        {!collapsed && (
-          <div style={{ margin: "10px 12px", padding: "12px 14px", background: "rgba(255,255,255,.08)", borderRadius: 10 }}>
-            <div style={{ fontSize: 9, fontWeight: 700, color: "rgba(255,255,255,.55)", textTransform: "uppercase", letterSpacing: 0.5 }}>Plano atual</div>
-            <div style={{ fontSize: 14, fontWeight: 800, marginTop: 2 }}>{role === "master" ? "Painel Master" : "Scale"}</div>
-            {role !== "master" && <div style={{ fontSize: 10, color: "rgba(255,255,255,.6)", marginTop: 2 }}>70 mil leads/mês</div>}
-          </div>
-        )}
         <div style={{ padding: "12px 16px", borderTop: "1px solid rgba(255,255,255,.12)" }}>
           <div onClick={() => { setView("landing"); setShowSupport(false); }} style={{ cursor: "pointer", fontSize: 12, opacity: 0.65, display: "flex", alignItems: "center", gap: 8, justifyContent: collapsed ? "center" : "flex-start" }}>
             <MenuIcon id="sair" />{!collapsed && "Sair"}
