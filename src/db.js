@@ -85,13 +85,14 @@ function mapLeadToDb(l, companyId) {
     faturamento: l.faturamento, abertura: l.abertura, tributacao: l.tributacao,
     rede_social: l.redeSocial, etapa: l.etapa, status: l.status, responsavel: l.responsavel,
     respondeu: l.respondeu, reuniao: l.reuniao, obs: l.obs, valor_neg: l.valorNeg || 0, produto: l.produto,
+    bairro: l.bairro, funcionarios: l.funcionarios,
   };
   if (companyId) row.company_id = companyId;
   Object.keys(row).forEach(k => row[k] === undefined && delete row[k]);
   return row;
 }
 
-function mapLeadFromDb(r) {
+export function mapLeadFromDb(r) {
   return {
     id: r.id, empresa: r.empresa, nome: r.nome, cnpj: r.cnpj, email: r.email,
     tel1: r.tel1, tel2: r.tel2, socio: r.socio, cidade: r.cidade, estado: r.estado,
@@ -99,7 +100,112 @@ function mapLeadFromDb(r) {
     faturamento: r.faturamento, abertura: r.abertura, tributacao: r.tributacao,
     redeSocial: r.rede_social, etapa: r.etapa, status: r.status, responsavel: r.responsavel,
     respondeu: r.respondeu, reuniao: r.reuniao, obs: r.obs, valorNeg: r.valor_neg, produto: r.produto,
+    bairro: r.bairro, funcionarios: r.funcionarios,
   };
+}
+
+/* ═══ MASTER: clientes reais, estoque de leads e distribuição ═══ */
+// A conta Master não passa pela autenticação do Supabase, então essas ações
+// passam por funções de servidor (pasta /api) que usam a chave de serviço.
+
+export async function fetchMasterCompanies() {
+  const r = await fetch("/api/master-companies");
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.error || "Erro ao buscar clientes");
+  return data; // { companies: [...], poolCount: n }
+}
+
+export async function fetchMasterPoolLeads({ search = "", limit = 2000, offset = 0 } = {}) {
+  const params = new URLSearchParams({ search, limit: String(limit), offset: String(offset) });
+  const r = await fetch(`/api/master-pool-leads?${params}`);
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.error || "Erro ao buscar leads do estoque");
+  return data.leads.map(mapLeadFromDb);
+}
+
+export async function importMasterLeads(leadsArray) {
+  const r = await fetch("/api/master-import-leads", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ leads: leadsArray }),
+  });
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.error || "Erro ao importar leads");
+  return data.inseridos;
+}
+
+export async function distributeMasterLeads(leadIds, companyId) {
+  const r = await fetch("/api/master-distribute-leads", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ leadIds, companyId }),
+  });
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.error || "Erro ao distribuir leads");
+  return data.distribuidos;
+}
+
+export async function clearMasterPool() {
+  const r = await fetch("/api/master-clear-pool", { method: "POST" });
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.error || "Erro ao limpar o estoque");
+}
+
+export async function fetchPlatformLeadsTotal() {
+  const { data, error } = await supabase.rpc("get_platform_leads_total");
+  if (error) { console.error(error); return 0; }
+  return data;
+}
+
+export async function updateCompanyLeadsLimit(companyId, leadsLimit) {
+  const r = await fetch("/api/master-update-limit", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ companyId, leadsLimit }),
+  });
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.error || "Erro ao atualizar o limite");
+}
+
+export async function fetchMasterSupportMessages() {
+  const r = await fetch("/api/master-support-messages");
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.error || "Erro ao buscar mensagens de suporte");
+  return data.messages;
+}
+
+export async function replyMasterSupport(companyId, message) {
+  const r = await fetch("/api/master-support-messages", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ companyId, message }),
+  });
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.error || "Erro ao enviar resposta");
+}
+
+/* ═══ SUPORTE (CLIENTE) ═══ */
+// Cada empresa só vê e envia mensagens da própria conversa (protegido por RLS).
+
+export async function fetchCompanySupportMessages(companyId) {
+  const { data, error } = await supabase
+    .from("support_messages")
+    .select("*")
+    .eq("company_id", companyId)
+    .order("created_at", { ascending: true });
+  if (error) { console.error(error); return []; }
+  return data;
+}
+
+export async function sendSupportMessageDb({ companyId, senderEmail, message }) {
+  const { error } = await supabase.from("support_messages").insert({
+    company_id: companyId, sender_email: senderEmail, message, remetente: "cliente",
+  });
+  if (error) throw error;
+}
+
+export function subscribeToSupport(companyId, onMessage) {
+  const sub = supabase
+    .channel("support-" + companyId)
+    .on("postgres_changes", { event: "INSERT", schema: "public", table: "support_messages", filter: `company_id=eq.${companyId}` }, payload => onMessage(payload.new))
+    .subscribe();
+  return () => supabase.removeChannel(sub);
 }
 
 /* ═══ COLABORADORES (EQUIPE) ═══ */

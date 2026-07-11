@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { supabase, MASTER_EMAIL, MASTER_PASSWORD } from "./supabaseClient.js";
-import { ensureProfileAndCompany, fetchLeads, fetchCollabs, insertLeads, updateLeadDb, deleteLeadsDb, clearAllLeadsDb, inviteCollaborator, removeCollaboratorDb, uploadMedia, updateProfileFields, fetchGroups, createGroupDb, updateGroupMembersDb, fetchChatMessages, sendChatMessage, subscribeToChat, logExport, fetchExportLogs } from "./db.js";
+import { ensureProfileAndCompany, fetchLeads, fetchCollabs, insertLeads, updateLeadDb, deleteLeadsDb, clearAllLeadsDb, inviteCollaborator, removeCollaboratorDb, uploadMedia, updateProfileFields, fetchGroups, createGroupDb, updateGroupMembersDb, fetchChatMessages, sendChatMessage, subscribeToChat, logExport, fetchExportLogs, fetchMasterCompanies, fetchMasterPoolLeads, importMasterLeads, distributeMasterLeads, clearMasterPool, fetchPlatformLeadsTotal, updateCompanyLeadsLimit, fetchMasterSupportMessages, replyMasterSupport, fetchCompanySupportMessages, sendSupportMessageDb, subscribeToSupport } from "./db.js";
 import { gerarCodigoExportacao, embutirMarcaDagua } from "./watermark.js";
 
 const LOGO = "data:image/png;base64,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";
@@ -46,7 +46,7 @@ const FUNNEL = [
   { id: "sem_resposta", label: "Sem Resposta", color: C.textSec },
 ];
 
-const LEAD_STATUS = ["Não contactado", "Contactado", "Aguardando resposta", "Sem resposta", "Reunião agendada", "Em negociação", "Lead convertido", "Sem interesse"];
+const LEAD_STATUS = ["Lead novo", "Contactado", "Aguardando resposta", "Sem resposta", "Reunião agendada", "Em negociação", "Lead convertido", "Sem interesse"];
 const STATUS_COLORS = {
   "Em negociação": { bg: "#FEF3C7", color: "#D97706" },
   "Sem interesse": { bg: "#F3E8FF", color: "#7C3AED" },
@@ -54,7 +54,7 @@ const STATUS_COLORS = {
   "Aguardando resposta": { bg: "#FEF9C3", color: "#CA8A04" },
   "Contactado": { bg: "#E0F2FE", color: "#0369A1" },
   "Lead convertido": { bg: "#ECFDF5", color: "#059669" },
-  "Não contactado": { bg: "#F3F4F6", color: "#6B7280" },
+  "Lead novo": { bg: "#F3F4F6", color: "#6B7280" },
   "Reunião agendada": { bg: "#D1FAE5", color: "#065F46" },
   "Lead finalizado": { bg: "#ECFDF5", color: "#059669" },
   "Lead contactado": { bg: "#E0F2FE", color: "#0369A1" },
@@ -70,7 +70,6 @@ const SAMPLE_LEADS = [];
 
 const SAMPLE_COLLABS = [];
 
-const SAMPLE_CLIENTS = [];
 
 const NEWS_ITEMS = [
   { id: 1, fonte: "CNN Brasil", titulo: "Dolar fecha em alta e atinge R$ 5,72 com tensões comerciais", tempo: "2h", cat: "Economia" },
@@ -99,13 +98,15 @@ const HEADER_MAP = {
   "tel2": "tel2", "telefone 2": "tel2", "fone 2": "tel2",
   "socio": "socio", "sócio": "socio", "nome do socio": "socio", "nome do sócio": "socio",
   "cidade": "cidade",
+  "bairro": "bairro",
   "estado": "estado", "uf": "estado",
   "divida": "divida", "dívida": "divida", "divida total": "divida", "dívida total": "divida",
   "dividaativa": "dividaAtiva", "divida ativa": "dividaAtiva", "dívida ativa": "dividaAtiva",
-  "cnae": "cnae", "atividade": "cnae", "segmento": "segmento", "nicho": "segmento",
+  "cnae": "cnae", "atividade": "cnae", "cnaes": "cnae", "segmento": "segmento", "nicho": "segmento",
   "faturamento": "faturamento", "faturamento medio": "faturamento", "faturamento médio": "faturamento",
+  "funcionarios": "funcionarios", "funcionários": "funcionarios", "qtd funcionarios": "funcionarios", "qtd de funcionarios": "funcionarios", "numero de funcionarios": "funcionarios",
   "abertura": "abertura", "data de abertura": "abertura", "data abertura": "abertura",
-  "tributacao": "tributação", "tributação": "tributação", "tipo de tributacao": "tributação", "regime tributario": "tributação",
+  "tributacao": "tributacao", "tributação": "tributacao", "tipo de tributacao": "tributacao", "regime tributario": "tributacao", "regime tributário": "tributacao",
   "redesocial": "redeSocial", "rede social": "redeSocial", "instagram": "redeSocial", "linkedin": "redeSocial",
 };
 
@@ -122,7 +123,7 @@ function parseCSV(text) {
     const vals = []; let cur = "", inQ = false;
     for (const ch of line) { if (ch === '"') inQ = !inQ; else if (ch === "," && !inQ) { vals.push(cur.trim()); cur = ""; } else cur += ch; }
     vals.push(cur.trim());
-    const obj = { id: Date.now() + i, etapa: "novo", status: "Aguardando resposta", responsável: "", respondeu: "", reunião: "", obs: "", valorNeg: 0, produto: "" };
+    const obj = { id: Date.now() + i, etapa: "novo", status: "Lead novo", responsavel: "", respondeu: "", reunião: "", obs: "", valorNeg: 0, produto: "" };
     headers.forEach((h, j) => { if (vals[j]) obj[h] = vals[j].replace(/['"]/g, ""); });
     return obj;
   });
@@ -234,7 +235,7 @@ function DashboardPage({ leads, collabs }) {
 
   const receitaPorCloser = useMemo(() => {
     const map = {};
-    fechados.forEach(l => { if (l.responsável) map[l.responsável] = (map[l.responsável] || 0) + (l.valorNeg || 0); });
+    fechados.forEach(l => { if (l.responsavel) map[l.responsavel] = (map[l.responsavel] || 0) + (l.valorNeg || 0); });
     return Object.entries(map).sort((a, b) => b[1] - a[1]);
   }, [fechados]);
 
@@ -339,7 +340,7 @@ function NegociaçõesPage({ leads, setLeads, collabs }) {
   const saveNew = () => {
     if (!newForm.leadId) return;
     const id = Number(newForm.leadId);
-    setLeads(prev => prev.map(l => l.id === id ? { ...l, etapa: "negociação", status: newForm.status, responsável: newForm.closer, produto: newForm.produto, valorNeg: Number(newForm.valor), obs: newForm.comentário } : l));
+    setLeads(prev => prev.map(l => l.id === id ? { ...l, etapa: "negociação", status: newForm.status, responsavel: newForm.closer, produto: newForm.produto, valorNeg: Number(newForm.valor), obs: newForm.comentário } : l));
     setShowNew(false);
     setNewForm({ leadId: "", closer: "", produto: "", valor: 0, status: "Em Negociação", prioridade: "Média", dtReuniao: "", proxContato: "", comentário: "" });
   };
@@ -383,7 +384,7 @@ function NegociaçõesPage({ leads, setLeads, collabs }) {
                     <div style={{ fontWeight: 700, fontSize: 13 }}>{l.empresa || l.nome}</div>
                     <div style={{ fontSize: 10, color: C.textSec }}>{l.segmento} - {l.cidade}/{l.estado}</div>
                   </td>
-                  <td style={{ padding: "12px 14px", fontSize: 12 }}>{l.responsável || "—"}</td>
+                  <td style={{ padding: "12px 14px", fontSize: 12 }}>{l.responsavel || "—"}</td>
                   <td style={{ padding: "12px 14px", fontSize: 12 }}>{l.produto || "—"}</td>
                   <td style={{ padding: "12px 14px", fontWeight: 700, color: C.green }}>{fmt(l.valorNeg)}</td>
                   <td style={{ padding: "12px 14px" }}>
@@ -453,58 +454,15 @@ function NegociaçõesPage({ leads, setLeads, collabs }) {
 }
 
 /* ═══ LEADS PAGE ═══ */
-const PRECO_POR_LEAD = 2.5;
 
-function LeadsPage({ leads, setLeads, collabs, isMaster, companyId, empresaNome, userEmail, initialSearch }) {
+function LeadsPage({ leads, setLeads, collabs, isMaster, companyId, empresaNome, userEmail, initialSearch, masterCompanies = [], onImportMaster, onDistributeMaster, onClearMaster, platformTotal = 0 }) {
+  const [importingMaster, setImportingMaster] = useState(false);
+  const [distributingMaster, setDistributingMaster] = useState(false);
   const [search, setSearch] = useState(initialSearch || ""); const [fSeg, setFSeg] = useState(""); const [fUF, setFUF] = useState(""); const [fStatus, setFStatus] = useState("");
   const [selected, setSelected] = useState(new Set()); const [showImport, setShowImport] = useState(false); const [showDist, setShowDist] = useState(false); const [detail, setDetail] = useState(null); const [importResult, setImportResult] = useState(0);
-  const [showPayment, setShowPayment] = useState(false);
-  const [paying, setPaying] = useState(false);
-  const [paid, setPaid] = useState(false);
   const fileRef = useRef();
 
   useEffect(() => { if (initialSearch) setSearch(initialSearch); }, [initialSearch]);
-
-  // Detecta o retorno do Checkout do Mercado Pago e conclui a exportação pendente
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const mpStatus = params.get("mp_status");
-    const mpRef = params.get("mp_ref");
-    if (!mpStatus || !mpRef) return;
-
-    const pendingRaw = sessionStorage.getItem("meetrix_pending_export");
-    if (!pendingRaw) return;
-    const pending = JSON.parse(pendingRaw);
-    if (pending.externalReference !== mpRef) return;
-
-    window.history.replaceState({}, "", window.location.pathname); // limpa a URL
-
-    if (mpStatus === "approved") {
-      setShowPayment(true);
-      setPaid(false);
-      setPaying(true);
-      (async () => {
-        // Confere de verdade no Mercado Pago se o pagamento foi aprovado, antes de liberar
-        try {
-          const r = await fetch(`/api/mp-check-payment?ref=${mpRef}`);
-          const s = await r.json();
-          if (s.status === "approved") {
-            const rows = leads.filter(l => pending.leadIds.includes(l.id));
-            await gerarEBaixarCSV(rows, pending.valor, s.id);
-            setPaid(true);
-          } else {
-            alert("O pagamento ainda não foi confirmado pelo Mercado Pago. Tente novamente em instantes.");
-            setShowPayment(false);
-          }
-        } catch (e) { alert("Erro ao confirmar o pagamento."); setShowPayment(false); }
-        setPaying(false);
-        sessionStorage.removeItem("meetrix_pending_export");
-      })();
-    } else {
-      alert(mpStatus === "pending" ? "Pagamento pendente. Assim que for aprovado, tente exportar novamente." : "Pagamento não foi concluído.");
-      sessionStorage.removeItem("meetrix_pending_export");
-    }
-  }, [leads]);
 
   const segs = useMemo(() => [...new Set(leads.map(l => l.segmento || l.cnae).filter(Boolean))].sort(), [leads]);
   const ufs = useMemo(() => [...new Set(leads.map(l => l.estado).filter(Boolean))].sort(), [leads]);
@@ -515,16 +473,62 @@ function LeadsPage({ leads, setLeads, collabs, isMaster, companyId, empresaNome,
       && (!fSeg || (l.segmento || l.cnae) === fSeg) && (!fUF || l.estado === fUF) && (!fStatus || l.status === fStatus);
   }), [leads, search, fSeg, fUF, fStatus]);
 
-  const handleCSV = f => { if (!f) return; const r = new FileReader(); r.onload = e => { const p = parseCSV(e.target.result); setLeads(prev => [...prev, ...p]); setImportResult(p.length); setShowImport(false); setTimeout(() => setImportResult(0), 4000); }; r.readAsText(f); };
+  const handleCSV = f => {
+    if (!f) return;
+    const r = new FileReader();
+    r.onload = async e => {
+      const p = parseCSV(e.target.result);
+      if (isMaster) {
+        setImportingMaster(true);
+        try {
+          const inseridos = await importMasterLeads(p);
+          setImportResult(inseridos);
+          setShowImport(false);
+          await onImportMaster?.(); // recarrega o estoque de leads real do banco
+        } catch (err) {
+          alert(err.message || "Erro ao importar leads. Confira se a chave de serviço do Supabase está configurada na Vercel.");
+        }
+        setImportingMaster(false);
+      } else {
+        setLeads(prev => [...prev, ...p]);
+        setImportResult(p.length);
+        setShowImport(false);
+      }
+      setTimeout(() => setImportResult(0), 4000);
+    };
+    r.readAsText(f);
+  };
   const toggleAll = () => { selected.size === filtered.length ? setSelected(new Set()) : setSelected(new Set(filtered.map(l => l.id))); };
   const toggle = id => setSelected(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
-  const distribuir = nome => { setLeads(prev => prev.map(l => selected.has(l.id) ? { ...l, responsável: nome, etapa: l.etapa === "novo" ? "contactado" : l.etapa, status: "Lead contactado" } : l)); setSelected(new Set()); setShowDist(false); };
+  const distribuir = nome => {
+    const jaAtribuidos = leads.filter(l => selected.has(l.id) && l.responsavel && l.responsavel !== nome);
+    const livres = leads.filter(l => selected.has(l.id) && (!l.responsavel || l.responsavel === nome));
+    if (jaAtribuidos.length > 0) {
+      const continuar = window.confirm(`${jaAtribuidos.length} dos leads selecionados já estão com outro colaborador e NÃO serão reatribuídos (um lead não pode ficar com duas pessoas ao mesmo tempo). Os outros ${livres.length} serão atribuídos a ${nome}. Continuar?`);
+      if (!continuar) return;
+    }
+    setLeads(prev => prev.map(l => (selected.has(l.id) && (!l.responsavel || l.responsavel === nome)) ? { ...l, responsavel: nome, etapa: l.etapa === "novo" ? "contactado" : l.etapa, status: "Lead contactado" } : l));
+    setSelected(new Set()); setShowDist(false);
+  };
+  // Master: atribui os leads selecionados (do estoque) a um cliente de verdade
+  const distribuirParaCliente = async (companyIdDestino) => {
+    setDistributingMaster(true);
+    try {
+      await distributeMasterLeads([...selected], companyIdDestino);
+      setSelected(new Set());
+      setShowDist(false);
+      await onDistributeMaster?.(); // recarrega o estoque (os leads distribuídos somem da lista do Master)
+    } catch (err) {
+      alert(err.message || "Erro ao distribuir leads para o cliente.");
+    }
+    setDistributingMaster(false);
+  };
   const updateLead = (id, data) => { setLeads(prev => prev.map(l => l.id === id ? { ...l, ...data } : l)); if (detail?.id === id) setDetail(prev => ({ ...prev, ...data })); };
 
   // Gera o CSV de fato, com marca d'água invisível, e registra o log de exportação
   const gerarEBaixarCSV = async (rows, valorPago = 0, paymentId = null) => {
     const codigo = gerarCodigoExportacao();
-    const keys = ["empresa", "nome", "cnpj", "email", "tel1", "tel2", "socio", "cidade", "estado", "segmento", "cnae", "faturamento", "divida", "abertura", "tributação", "status"];
+    const keys = ["empresa", "nome", "cnpj", "email", "tel1", "tel2", "socio", "cidade", "bairro", "estado", "segmento", "cnae", "faturamento", "funcionarios", "divida", "abertura", "tributacao", "status"];
     const csv = [keys.join(","), ...rows.map(r => keys.map((k, i) => {
       let val = r[k] || "";
       if (i === 0) val = embutirMarcaDagua(val, codigo); // marca d'água embutida no campo "empresa"
@@ -534,64 +538,47 @@ function LeadsPage({ leads, setLeads, collabs, isMaster, companyId, empresaNome,
     await logExport({ companyId, empresaNome, userEmail, quantidade: rows.length, valor: valorPago, codigo, paymentId });
   };
 
-  // Master exporta de graça (é ela quem fornece os leads)
-  const exportCSVMaster = () => {
+  // Exportação gratuita para todos (a cobrança por lead foi removida)
+  const exportCSVGratis = () => {
     const rows = filtered.filter(l => selected.size === 0 || selected.has(l.id));
     gerarEBaixarCSV(rows, 0, null);
   };
 
   const limparTodosLeads = async () => {
-    if (!window.confirm(`Tem certeza que deseja apagar TODOS os ${leads.length} leads? Essa ação não pode ser desfeita.`)) return;
-    await clearAllLeadsDb(companyId);
-    setLeads([]);
-  };
-
-  // Cliente precisa pagar antes de exportar (Pix, cartão ou boleto via Mercado Pago)
-  const abrirPagamentoExportacao = () => {
-    setShowPayment(true);
-  };
-
-  const irParaCheckout = async () => {
-    const rows = filtered.filter(l => selected.size === 0 || selected.has(l.id));
-    const valor = Number((rows.length * PRECO_POR_LEAD).toFixed(2));
-    const externalReference = "exp_" + Date.now() + "_" + Math.random().toString(36).slice(2, 8);
-    setPaying(true);
-    try {
-      // Guarda os leads selecionados para retomar a exportação quando o usuário voltar do Mercado Pago
-      sessionStorage.setItem("meetrix_pending_export", JSON.stringify({
-        leadIds: rows.map(r => r.id), valor, companyId, empresaNome, userEmail, externalReference,
-      }));
-      const resp = await fetch("/api/mp-create-preference", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ valor, descricao: `Exportação de ${rows.length} leads - Meetrix`, emailPagador: userEmail, externalReference, origin: window.location.origin }),
-      });
-      const data = await resp.json();
-      if (!resp.ok) throw new Error(data.error || "Erro ao gerar o checkout");
-      window.location.href = data.init_point; // Leva o cliente para a página do Mercado Pago (Pix, cartão ou boleto)
-    } catch (e) {
-      alert(e.message || "Não foi possível abrir o checkout. Verifique se o Mercado Pago está configurado.");
-      setPaying(false);
+    if (!window.confirm(`Tem certeza que deseja apagar TODOS os ${leads.length} leads do estoque? Essa ação não pode ser desfeita. (Leads já distribuídos a clientes não são afetados.)`)) return;
+    if (isMaster) {
+      try {
+        await clearMasterPool();
+        await onClearMaster?.();
+      } catch (err) {
+        alert(err.message || "Erro ao limpar o estoque.");
+      }
+    } else {
+      await clearAllLeadsDb(companyId);
+      setLeads([]);
     }
   };
 
   const rowsSelecionadas = filtered.filter(l => selected.size === 0 || selected.has(l.id));
-  const valorEstimado = (rowsSelecionadas.length * PRECO_POR_LEAD).toFixed(2);
 
-  const exportCSV = isMaster ? exportCSVMaster : abrirPagamentoExportacao;
+  const exportCSV = exportCSVGratis;
 
 
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-        <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>Leads ({leads.length})</h2>
+        <div>
+          <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>{isMaster ? `Estoque de leads (${leads.length})` : `Leads (${leads.length})`}</h2>
+          {!isMaster && platformTotal > 0 && <div style={{ fontSize: 11, color: C.textSec, marginTop: 2 }}>Leads na plataforma: <strong>{platformTotal.toLocaleString("pt-BR")}</strong> • você tem <strong>{leads.length.toLocaleString("pt-BR")}</strong> disponíveis</div>}
+        </div>
         <div style={{ display: "flex", gap: 8 }}>
           {isMaster && <button onClick={() => setShowImport(true)} style={sBtn()}>Importar CSV</button>}
-          {isMaster && <button onClick={exportCSV} style={sBtn(C.green)}>Exportar CSV</button>}
+          <button onClick={exportCSV} style={sBtn(C.green)}>Exportar CSV</button>
           {isMaster && leads.length > 0 && <button onClick={limparTodosLeads} style={sBtn(C.red)}>Limpar todos os leads</button>}
-          {!isMaster && <button onClick={exportCSV} style={sBtn(C.green)}>Exportar CSV</button>}
         </div>
       </div>
       {importResult > 0 && <div style={{ background: C.greenLight, border: `1px solid ${C.green}`, borderRadius: 6, padding: "10px 16px", marginBottom: 14, fontSize: 12, color: C.green, fontWeight: 600 }}>{importResult} leads importados com sucesso.</div>}
+      {importingMaster && <div style={{ background: C.accentLight, border: `1px solid ${C.accent}`, borderRadius: 6, padding: "10px 16px", marginBottom: 14, fontSize: 12, color: C.accent, fontWeight: 600 }}>Importando e salvando os leads no banco, aguarde...</div>}
 
       <div style={{ ...sCard, padding: 12, marginBottom: 12 }}>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -644,10 +631,16 @@ function LeadsPage({ leads, setLeads, collabs, isMaster, companyId, empresaNome,
         <div onDragOver={e => e.preventDefault()} onDrop={e => { e.preventDefault(); handleCSV(e.dataTransfer.files[0]); }} onClick={() => fileRef.current?.click()} style={{ border: `2px dashed ${C.border}`, borderRadius: 8, padding: 40, textAlign: "center", cursor: "pointer", background: C.bg }}>
           <input ref={fileRef} type="file" accept=".csv" style={{ display: "none" }} onChange={e => handleCSV(e.target.files[0])} />
           <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 6 }}>Arraste o CSV aqui ou clique para selecionar</div>
-          <div style={{ fontSize: 10, color: C.textSec }}>Colunas: nome, tel1, tel2, email, socio, cnpj, cidade, estado, divida, cnae, faturamento, abertura, tributação, empresa, segmento</div>
+          <div style={{ fontSize: 10, color: C.textSec }}>Colunas: nome, tel1, tel2, email, socio, cnpj, cidade, bairro, estado, divida, cnae(s), faturamento, funcionarios, abertura, regime tributário, empresa, segmento</div>
         </div>
       </Modal>}
-      {showDist && <Modal title="Distribuir leads" onClose={() => setShowDist(false)}>
+      {showDist && isMaster && <Modal title="Distribuir leads" onClose={() => setShowDist(false)}>
+        <div style={{ fontSize: 12, color: C.textSec, marginBottom: 14 }}>{selected.size} leads serão atribuídos ao cliente selecionado. Eles saem do estoque e passam a pertencer só a esse cliente.</div>
+        {distributingMaster && <div style={{ fontSize: 12, color: C.accent, marginBottom: 10 }}>Distribuindo...</div>}
+        {masterCompanies.length === 0 && <div style={{ fontSize: 12, color: C.textSec }}>Nenhum cliente cadastrado ainda. Assim que alguém criar conta como cliente, ele aparece aqui.</div>}
+        {masterCompanies.map(c => <button key={c.id} disabled={distributingMaster} onClick={() => distribuirParaCliente(c.id)} style={{ ...sCard, padding: "12px 16px", width: "100%", cursor: distributingMaster ? "default" : "pointer", marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center", textAlign: "left", opacity: distributingMaster ? 0.6 : 1 }}><div><div style={{ fontWeight: 600, fontSize: 13 }}>{c.empresa}</div><div style={{ fontSize: 11, color: C.textSec }}>{c.leadsUsados} leads atribuídos • {PLANS.find(p => p.id === c.plano)?.name || c.plano}</div></div><span style={{ color: C.accent, fontWeight: 600, fontSize: 12 }}>Atribuir</span></button>)}
+      </Modal>}
+      {showDist && !isMaster && <Modal title="Distribuir leads" onClose={() => setShowDist(false)}>
         <div style={{ fontSize: 12, color: C.textSec, marginBottom: 14 }}>{selected.size} leads serao atribuídos ao colaborador selecionado.</div>
         {collabs.map(c => <button key={c.id} onClick={() => distribuir(c.nome)} style={{ ...sCard, padding: "12px 16px", width: "100%", cursor: "pointer", marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center", textAlign: "left" }}><div><div style={{ fontWeight: 600, fontSize: 13 }}>{c.nome}</div><div style={{ fontSize: 11, color: C.textSec }}>{ROLES.find(r => r.id === c.cargo)?.label}</div></div><span style={{ color: C.accent, fontWeight: 600, fontSize: 12 }}>Atribuir</span></button>)}
       </Modal>}
@@ -655,7 +648,7 @@ function LeadsPage({ leads, setLeads, collabs, isMaster, companyId, empresaNome,
         <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
           <div style={{ flex: 1, minWidth: 260 }}>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-              {[["Nome", detail.nome], ["Email", detail.email], ["Telefone 1", detail.tel1], ["Telefone 2", detail.tel2], ["Socio", detail.socio], ["CNPJ", detail.cnpj], ["Cidade", detail.cidade], ["Estado", detail.estado], ["Divida", detail.divida], ["CNAE", detail.cnae], ["Faturamento", detail.faturamento], ["Abertura", detail.abertura], ["Tributação", detail.tributação], ["Segmento", detail.segmento]].map(([k, v]) => <div key={k}><div style={sLabel}>{k}</div><div style={{ fontSize: 12 }}>{v || "—"}</div></div>)}
+              {[["Nome", detail.nome], ["Email", detail.email], ["Telefone 1", detail.tel1], ["Telefone 2", detail.tel2], ["Socio", detail.socio], ["CNPJ", detail.cnpj], ["Cidade", detail.cidade], ["Bairro", detail.bairro], ["Estado", detail.estado], ["Divida", detail.divida], ["CNAE(s)", detail.cnae], ["Faturamento", detail.faturamento], ["Qtd. funcionários", detail.funcionarios], ["Abertura", detail.abertura], ["Regime tributário", detail.tributacao], ["Segmento", detail.segmento]].map(([k, v]) => <div key={k}><div style={sLabel}>{k}</div><div style={{ fontSize: 12 }}>{v || "—"}</div></div>)}
             </div>
           </div>
           <div style={{ flex: 1, minWidth: 240 }}>
@@ -665,53 +658,12 @@ function LeadsPage({ leads, setLeads, collabs, isMaster, companyId, empresaNome,
               <div><div style={sLabel}>Respondeu?</div><select value={detail.respondeu} onChange={e => updateLead(detail.id, { respondeu: e.target.value })} style={sSelect}><option value="">—</option><option value="sim">Sim</option><option value="nao">Nao</option></select></div>
               <div><div style={sLabel}>Reunião?</div><select value={detail.reunião} onChange={e => updateLead(detail.id, { reunião: e.target.value })} style={sSelect}><option value="">—</option><option value="sim">Sim</option><option value="nao">Nao</option></select></div>
             </div>
-            <div style={{ marginBottom: 12 }}><div style={sLabel}>Responsável</div><select value={detail.responsável} onChange={e => updateLead(detail.id, { responsável: e.target.value })} style={sSelect}><option value="">Não atribuído</option>{collabs.map(c => <option key={c.id} value={c.nome}>{c.nome}</option>)}</select></div>
+            <div style={{ marginBottom: 12 }}><div style={sLabel}>Responsável</div><select value={detail.responsavel} onChange={e => updateLead(detail.id, { responsavel: e.target.value })} style={sSelect}><option value="">Não atribuído</option>{collabs.map(c => <option key={c.id} value={c.nome}>{c.nome}</option>)}</select></div>
             <div style={{ marginBottom: 12 }}><div style={sLabel}>Valor negociação (R$)</div><input type="number" value={detail.valorNeg || 0} onChange={e => updateLead(detail.id, { valorNeg: Number(e.target.value) })} style={sInput} /></div>
             <div><div style={sLabel}>Observações</div><textarea value={detail.obs} onChange={e => updateLead(detail.id, { obs: e.target.value })} rows={3} style={{ ...sInput, resize: "vertical" }} /></div>
           </div>
         </div>
       </Modal>}
-
-      {/* Modal de pagamento para exportação (Pix, cartão ou boleto) */}
-      {showPayment && (
-        <Modal title="Exportar leads" onClose={() => setShowPayment(false)}>
-          {!paying && !paid && (
-            <div>
-              <div style={{ ...sCard, padding: 16, marginBottom: 16, textAlign: "center" }}>
-                <div style={{ fontSize: 12, color: C.textSec }}>Você está exportando</div>
-                <div style={{ fontSize: 26, fontWeight: 800, color: C.accent, margin: "4px 0" }}>{rowsSelecionadas.length} leads</div>
-                <div style={{ fontSize: 12, color: C.textSec }}>R$ {PRECO_POR_LEAD.toFixed(2)} por lead</div>
-                <div style={{ fontSize: 22, fontWeight: 800, color: C.green, marginTop: 8 }}>Total: R$ {valorEstimado}</div>
-              </div>
-              <button onClick={irParaCheckout} style={{ ...sBtn(), width: "100%", padding: "12px 0", fontSize: 14 }}>
-                Continuar para pagamento
-              </button>
-              <div style={{ fontSize: 11, color: C.textLight, textAlign: "center", marginTop: 10 }}>Você escolhe Pix, cartão de crédito ou boleto na página do Mercado Pago</div>
-            </div>
-          )}
-
-          {paying && !paid && (
-            <div style={{ textAlign: "center", padding: "20px 0" }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-                <div style={{ width: 14, height: 14, borderRadius: "50%", border: `2px solid ${C.accent}`, borderTopColor: "transparent", animation: "spin 1s linear infinite" }} />
-                <span style={{ fontSize: 13, color: C.accent, fontWeight: 600 }}>Confirmando pagamento...</span>
-              </div>
-              <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-            </div>
-          )}
-
-          {paid && (
-            <div style={{ textAlign: "center", padding: "20px 0" }}>
-              <div style={{ width: 56, height: 56, borderRadius: "50%", background: C.greenLight, margin: "0 auto 16px", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={C.green} strokeWidth="3"><path d="M20 6 9 17l-5-5" /></svg>
-              </div>
-              <div style={{ fontSize: 16, fontWeight: 700, color: C.green, marginBottom: 6 }}>Pagamento confirmado!</div>
-              <div style={{ fontSize: 12, color: C.textSec }}>O download do CSV começou automaticamente.</div>
-              <button onClick={() => setShowPayment(false)} style={{ ...sBtn(), marginTop: 16 }}>Fechar</button>
-            </div>
-          )}
-        </Modal>
-      )}
     </div>
   );
 }
@@ -728,8 +680,8 @@ function FunnelPage({ leads, setLeads, collabs }) {
   const [showDist, setShowDist] = useState(false);
   const [distLeadId, setDistLeadId] = useState(null);
 
-  const saveNeg = () => { if (!negForm.leadId) return; setLeads(prev => prev.map(l => l.id === Number(negForm.leadId) ? { ...l, etapa: "negociação", status: "Em negociação", responsável: negForm.closer, produto: negForm.produto, valorNeg: Number(negForm.valor) } : l)); setShowNeg(false); setNegForm({ leadId: "", closer: "", produto: "", valor: 0 }); };
-  const distribuirLead = (leadId, nome) => { setLeads(prev => prev.map(l => l.id === leadId ? { ...l, responsável: nome } : l)); setShowDist(false); setDistLeadId(null); };
+  const saveNeg = () => { if (!negForm.leadId) return; setLeads(prev => prev.map(l => l.id === Number(negForm.leadId) ? { ...l, etapa: "negociação", status: "Em negociação", responsavel: negForm.closer, produto: negForm.produto, valorNeg: Number(negForm.valor) } : l)); setShowNeg(false); setNegForm({ leadId: "", closer: "", produto: "", valor: 0 }); };
+  const distribuirLead = (leadId, nome) => { setLeads(prev => prev.map(l => l.id === leadId ? { ...l, responsavel: nome } : l)); setShowDist(false); setDistLeadId(null); };
 
   return (
     <div>
@@ -790,7 +742,7 @@ function FunnelPage({ leads, setLeads, collabs }) {
                   <div key={l.id} style={{ ...sCard, padding: "8px 10px" }}>
                     <div style={{ fontSize: 11, fontWeight: 700, marginBottom: 2 }}>{l.empresa || l.nome}</div>
                     <div style={{ fontSize: 10, color: C.textSec }}>{l.segmento} - {l.cidade}/{l.estado}</div>
-                    {l.responsável ? <div style={{ fontSize: 10, color: C.accent, fontWeight: 600, marginTop: 3 }}>{l.responsável}</div>
+                    {l.responsavel ? <div style={{ fontSize: 10, color: C.accent, fontWeight: 600, marginTop: 3 }}>{l.responsavel}</div>
                       : <button onClick={() => { setDistLeadId(l.id); setShowDist(true); }} style={{ ...sBtn(C.blueLight, C.blue), padding: "2px 8px", fontSize: 9, marginTop: 3, width: "100%" }}>Distribuir</button>}
                     {l.valorNeg > 0 && <div style={{ fontSize: 10, fontWeight: 700, color: C.green, marginTop: 2 }}>{fmt(l.valorNeg)}</div>}
                     <select value={l.etapa} onChange={e => updateLead(l.id, { etapa: e.target.value })} style={{ ...sSelect, padding: "3px 6px", fontSize: 10, marginTop: 4 }}>
@@ -853,9 +805,9 @@ function TeamPage({ collabs, setCollabs, leads, companyId }) {
   };
 
   return (<div><div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}><h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>Equipe</h2><button onClick={() => setShowAdd(true)} style={sBtn()}>+ Novo colaborador</button></div>
-    {collabs.map(c => { const assigned = leads.filter(l => l.responsável === c.nome).length; const fechados = leads.filter(l => l.responsável === c.nome && l.etapa === "fechado").length;
+    {collabs.map(c => { const assigned = leads.filter(l => l.responsavel === c.nome).length; const contactados = leads.filter(l => l.responsavel === c.nome && l.status !== "Lead novo").length; const fechados = leads.filter(l => l.responsavel === c.nome && l.etapa === "fechado").length;
       return (<div key={c.id} style={{ ...sCard, padding: "16px 20px", marginBottom: 8, display: "flex", alignItems: "center", justifyContent: "space-between" }}><div><div style={{ fontWeight: 700, fontSize: 14 }}>{c.nome}</div><div style={{ fontSize: 11, color: C.textSec }}>{ROLES.find(r => r.id === c.cargo)?.label} | {c.email}</div></div>
-        <div style={{ display: "flex", alignItems: "center", gap: 20 }}><div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 800, color: C.accent }}>{assigned}</div><div style={{ fontSize: 10, color: C.textSec }}>leads</div></div><div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 800, color: C.green }}>{fechados}</div><div style={{ fontSize: 10, color: C.textSec }}>fechados</div></div><div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 800, color: C.blue }}>{c.limite}</div><div style={{ fontSize: 10, color: C.textSec }}>limite</div></div><Badge bg={C.greenLight} color={C.green}>Ativo</Badge><button onClick={() => remove(c.id)} style={{ background: "none", border: "none", color: C.red, cursor: "pointer", fontSize: 11, fontWeight: 600, fontFamily: font }}>Remover</button></div></div>);
+        <div style={{ display: "flex", alignItems: "center", gap: 20 }}><div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 800, color: C.accent }}>{assigned}</div><div style={{ fontSize: 10, color: C.textSec }}>leads</div></div><div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 800, color: C.orange }}>{contactados}</div><div style={{ fontSize: 10, color: C.textSec }}>contactados</div></div><div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 800, color: C.green }}>{fechados}</div><div style={{ fontSize: 10, color: C.textSec }}>fechados</div></div><div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 800, color: C.blue }}>{c.limite}</div><div style={{ fontSize: 10, color: C.textSec }}>limite</div></div><Badge bg={C.greenLight} color={C.green}>Ativo</Badge><button onClick={() => remove(c.id)} style={{ background: "none", border: "none", color: C.red, cursor: "pointer", fontSize: 11, fontWeight: 600, fontFamily: font }}>Remover</button></div></div>);
     })}
     {collabs.length === 0 && <div style={{ ...sCard, padding: 32, textAlign: "center", color: C.textLight, fontSize: 12 }}>Nenhum colaborador cadastrado ainda.</div>}
     {showAdd && <Modal title="Novo colaborador" onClose={() => setShowAdd(false)}>
@@ -1543,8 +1495,26 @@ function MasterExportLogs() {
   );
 }
 
-function MasterPanel() { return (<div><h2 style={{ fontSize: 18, fontWeight: 700, margin: "0 0 20px" }}>Painel Master</h2><div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 20 }}>{[{ t: "Clientes ativos", v: SAMPLE_CLIENTS.length, c: C.accent }, { t: "Leads distribuídos", v: "0", c: C.blue }].map((s, i) => <div key={i} style={{ ...sCard, padding: "18px 20px", flex: 1, minWidth: 150 }}><div style={sLabel}>{s.t}</div><div style={{ fontSize: 26, fontWeight: 800, color: s.c, marginTop: 4 }}>{s.v}</div></div>)}</div>
-    <div style={{ ...sCard, overflow: "hidden", marginBottom: 20 }}><div style={{ padding: "14px 18px", borderBottom: `1px solid ${C.border}`, fontWeight: 700, fontSize: 14 }}>Clientes</div><div style={{ overflowX: "auto" }}><table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}><thead><tr style={{ background: C.bg, borderBottom: `1px solid ${C.border}` }}>{["ID", "Empresa", "Plano", "Leads", "Collabs", "Status", ""].map(h => <th key={h} style={{ padding: "10px 12px", textAlign: "left", fontWeight: 700, color: C.textSec, fontSize: 10, textTransform: "uppercase", whiteSpace: "nowrap" }}>{h}</th>)}</tr></thead><tbody>{SAMPLE_CLIENTS.map(c => { const pct = Math.round((c.leadsUsados / c.leadsLimite) * 100); return (<tr key={c.id} style={{ borderBottom: `1px solid ${C.border}` }}><td style={{ padding: "10px 12px", fontFamily: "monospace", fontSize: 11, fontWeight: 600 }}>{c.id}</td><td style={{ padding: "10px 12px", fontWeight: 600 }}>{c.empresa}</td><td style={{ padding: "10px 12px" }}><Badge>{PLANS.find(p => p.id === c.plano)?.name}</Badge></td><td style={{ padding: "10px 12px" }}><div style={{ display: "flex", alignItems: "center", gap: 6 }}><div style={{ background: C.bg, borderRadius: 4, height: 6, width: 50, overflow: "hidden" }}><div style={{ height: "100%", width: `${pct}%`, background: pct >= 80 ? C.orange : C.accent, borderRadius: 4 }} /></div><span style={{ fontSize: 10, color: pct >= 80 ? C.orange : C.textSec, fontWeight: 600 }}>{pct}%</span></div></td><td style={{ padding: "10px 12px" }}>{c.collabs}</td><td style={{ padding: "10px 12px" }}><Badge bg={C.greenLight} color={C.green}>Ativo</Badge></td><td style={{ padding: "10px 12px" }}><button style={{ background: "none", border: "none", color: C.red, cursor: "pointer", fontSize: 11, fontWeight: 600, fontFamily: font }}>Excluir</button></td></tr>); })}</tbody></table></div></div>
+function MasterPanel({ companies, poolCount, loading, onUpdateLimit }) {
+  const totalDistribuidos = companies.reduce((acc, c) => acc + (c.leadsUsados || 0), 0);
+  const [edits, setEdits] = useState({});
+  const [saving, setSaving] = useState(null);
+
+  const salvar = async (companyId) => {
+    const novo = edits[companyId];
+    if (novo === undefined || novo === "") return;
+    setSaving(companyId);
+    try {
+      await onUpdateLimit(companyId, Number(novo));
+      setEdits(prev => { const n = { ...prev }; delete n[companyId]; return n; });
+    } catch (e) {
+      alert(e.message || "Erro ao salvar o limite.");
+    }
+    setSaving(null);
+  };
+
+  return (<div><h2 style={{ fontSize: 18, fontWeight: 700, margin: "0 0 20px" }}>Painel Master</h2><div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 20 }}>{[{ t: "Clientes ativos", v: companies.length, c: C.accent }, { t: "Leads no estoque", v: poolCount, c: C.orange }, { t: "Leads distribuídos", v: totalDistribuidos, c: C.blue }].map((s, i) => <div key={i} style={{ ...sCard, padding: "18px 20px", flex: 1, minWidth: 150 }}><div style={sLabel}>{s.t}</div><div style={{ fontSize: 26, fontWeight: 800, color: s.c, marginTop: 4 }}>{loading ? "…" : s.v}</div></div>)}</div>
+    <div style={{ ...sCard, overflow: "hidden", marginBottom: 20 }}><div style={{ padding: "14px 18px", borderBottom: `1px solid ${C.border}`, fontWeight: 700, fontSize: 14 }}>Clientes</div><div style={{ overflowX: "auto" }}>{loading ? <div style={{ padding: 20, fontSize: 12, color: C.textSec }}>Carregando clientes...</div> : companies.length === 0 ? <div style={{ padding: 20, fontSize: 12, color: C.textSec }}>Nenhum cliente cadastrado ainda.</div> : <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}><thead><tr style={{ background: C.bg, borderBottom: `1px solid ${C.border}` }}>{["ID", "Empresa", "Plano", "Leads atribuídos", "Limite (cota)", "Status"].map(h => <th key={h} style={{ padding: "10px 12px", textAlign: "left", fontWeight: 700, color: C.textSec, fontSize: 10, textTransform: "uppercase", whiteSpace: "nowrap" }}>{h}</th>)}</tr></thead><tbody>{companies.map(c => { const limite = c.leadsLimite || 1; const pct = Math.min(100, Math.round((c.leadsUsados / limite) * 100)); return (<tr key={c.id} style={{ borderBottom: `1px solid ${C.border}` }}><td style={{ padding: "10px 12px", fontFamily: "monospace", fontSize: 11, fontWeight: 600 }}>{String(c.id).slice(0, 8)}</td><td style={{ padding: "10px 12px", fontWeight: 600 }}>{c.empresa}</td><td style={{ padding: "10px 12px" }}><Badge>{PLANS.find(p => p.id === c.plano)?.name || c.plano}</Badge></td><td style={{ padding: "10px 12px" }}><div style={{ display: "flex", alignItems: "center", gap: 6 }}><div style={{ background: C.bg, borderRadius: 4, height: 6, width: 50, overflow: "hidden" }}><div style={{ height: "100%", width: `${pct}%`, background: pct >= 80 ? C.orange : C.accent, borderRadius: 4 }} /></div><span style={{ fontSize: 10, color: pct >= 80 ? C.orange : C.textSec, fontWeight: 600 }}>{c.leadsUsados}</span></div></td><td style={{ padding: "10px 12px" }}><div style={{ display: "flex", gap: 4, alignItems: "center" }}><input type="number" min="0" value={edits[c.id] !== undefined ? edits[c.id] : c.leadsLimite || 0} onChange={e => setEdits(prev => ({ ...prev, [c.id]: e.target.value }))} style={{ ...sInput, width: 80, padding: "4px 8px" }} /><button onClick={() => salvar(c.id)} disabled={saving === c.id} style={{ ...sBtn(), padding: "4px 10px", fontSize: 11 }}>{saving === c.id ? "..." : "Salvar"}</button></div></td><td style={{ padding: "10px 12px" }}><Badge bg={C.greenLight} color={C.green}>Ativo</Badge></td></tr>); })}</tbody></table>}</div></div>
     <MasterExportLogs />
     <MasterSupportInbox />
     </div>); }
@@ -1658,49 +1628,116 @@ function AuthPage({ onLoginSuccess, onMasterSuccess, onBack }) {
   );
 }
 
-function SupportChat({ show, onClose, userEmail }) {
-  const [msgs, setMsgs] = useState([{ id: 1, from: "bot", text: "Olá! Como podemos ajudar?" }]);
+function SupportChat({ show, onClose, userEmail, companyId }) {
+  const [msgs, setMsgs] = useState([]);
   const [txt, setTxt] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
+  const boxRef = useRef();
+
+  useEffect(() => {
+    if (!show || !companyId) return;
+    let unsub;
+    (async () => {
+      setLoading(true);
+      const data = await fetchCompanySupportMessages(companyId);
+      setMsgs(data);
+      setLoading(false);
+      unsub = subscribeToSupport(companyId, (msg) => setMsgs(prev => [...prev, msg]));
+    })();
+    return () => unsub?.();
+  }, [show, companyId]);
+
+  useEffect(() => { if (boxRef.current) boxRef.current.scrollTop = boxRef.current.scrollHeight; }, [msgs]);
+
   const send = async () => {
-    if (!txt.trim()) return;
-    setMsgs(prev => [...prev, { id: Date.now(), from: "user", text: txt }]);
-    // Salva a mensagem para a conta Master visualizar
+    if (!txt.trim() || !companyId || sending) return;
+    setSending(true);
     try {
-      await supabase.from("support_messages").insert({ sender_email: userEmail || "desconhecido", message: txt });
-    } catch {}
-    setTxt("");
-    setTimeout(() => setMsgs(prev => [...prev, { id: Date.now() + 1, from: "bot", text: "Recebemos sua mensagem. Um atendente responderá em breve." }]), 700);
+      await sendSupportMessageDb({ companyId, senderEmail: userEmail || "desconhecido", message: txt.trim() });
+      setTxt("");
+    } catch (e) {
+      alert("Não foi possível enviar sua mensagem. Tente novamente em instantes.");
+    }
+    setSending(false);
   };
+
   if (!show) return null;
-  return (<div style={{ position: "fixed", bottom: 20, right: 20, width: 340, height: 400, background: C.white, borderRadius: 12, boxShadow: "0 8px 30px rgba(0,0,0,.15)", display: "flex", flexDirection: "column", overflow: "hidden", zIndex: 900, border: `1px solid ${C.border}` }}><div style={{ padding: "12px 16px", background: C.sidebar, color: "#fff", display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ fontWeight: 700, fontSize: 13 }}>Suporte Meetrix</span><button onClick={onClose} style={{ background: "none", border: "none", color: "#fff", fontSize: 16, cursor: "pointer" }}>x</button></div><div style={{ flex: 1, padding: 12, overflowY: "auto", display: "flex", flexDirection: "column", gap: 8 }}>{msgs.map(m => <div key={m.id} style={{ alignSelf: m.from === "user" ? "flex-end" : "flex-start", maxWidth: "80%", background: m.from === "user" ? C.accent : C.bg, color: m.from === "user" ? "#fff" : C.text, padding: "8px 12px", borderRadius: 8, fontSize: 12 }}>{m.text}</div>)}</div><div style={{ padding: "8px 12px", borderTop: `1px solid ${C.border}`, display: "flex", gap: 6 }}><input value={txt} onChange={e => setTxt(e.target.value)} onKeyDown={e => e.key === "Enter" && send()} placeholder="Sua mensagem..." style={{ ...sInput, flex: 1 }} /><button onClick={send} style={sBtn()}>Enviar</button></div></div>);
+  return (<div style={{ position: "fixed", bottom: 20, right: 20, width: 340, height: 420, background: C.white, borderRadius: 12, boxShadow: "0 8px 30px rgba(0,0,0,.15)", display: "flex", flexDirection: "column", overflow: "hidden", zIndex: 900, border: `1px solid ${C.border}` }}>
+    <div style={{ padding: "12px 16px", background: C.sidebar, color: "#fff", display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ fontWeight: 700, fontSize: 13 }}>Suporte Meetrix</span><button onClick={onClose} style={{ background: "none", border: "none", color: "#fff", fontSize: 16, cursor: "pointer" }}>x</button></div>
+    <div ref={boxRef} style={{ flex: 1, padding: 12, overflowY: "auto", display: "flex", flexDirection: "column", gap: 8 }}>
+      {loading && <div style={{ fontSize: 12, color: C.textSec, textAlign: "center" }}>Carregando conversa...</div>}
+      {!loading && msgs.length === 0 && <div style={{ fontSize: 12, color: C.textSec, textAlign: "center" }}>Envie uma mensagem, alguém do time Meetrix vai te responder aqui mesmo.</div>}
+      {msgs.map(m => <div key={m.id} style={{ alignSelf: m.remetente === "master" ? "flex-start" : "flex-end", maxWidth: "80%", background: m.remetente === "master" ? C.bg : C.accent, color: m.remetente === "master" ? C.text : "#fff", padding: "8px 12px", borderRadius: 8, fontSize: 12 }}>{m.message}</div>)}
+    </div>
+    <div style={{ padding: "8px 12px", borderTop: `1px solid ${C.border}`, display: "flex", gap: 6 }}><input value={txt} onChange={e => setTxt(e.target.value)} onKeyDown={e => e.key === "Enter" && send()} placeholder="Sua mensagem..." style={{ ...sInput, flex: 1 }} disabled={sending} /><button onClick={send} style={sBtn()} disabled={sending}>{sending ? "..." : "Enviar"}</button></div>
+  </div>);
 }
 
 /* ═══ MASTER SUPPORT INBOX ═══ */
 function MasterSupportInbox() {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [replyText, setReplyText] = useState({});
+  const [sendingReply, setSendingReply] = useState(null);
 
-  useEffect(() => {
-    const fetchMessages = async () => {
-      const { data, error } = await supabase.from("support_messages").select("*").order("created_at", { ascending: false });
-      if (!error && data) setMessages(data);
-      setLoading(false);
-    };
-    fetchMessages();
-  }, []);
+  const load = async () => {
+    try {
+      const data = await fetchMasterSupportMessages();
+      setMessages(data);
+    } catch (e) {
+      console.error(e);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => { load(); const interval = setInterval(load, 8000); return () => clearInterval(interval); }, []);
+
+  // Agrupa as mensagens por empresa (uma conversa por cliente)
+  const threads = useMemo(() => {
+    const map = {};
+    messages.forEach(m => {
+      const key = m.company_id || "sem-empresa";
+      if (!map[key]) map[key] = { companyId: m.company_id, empresa: m.companies?.name || "Empresa desconhecida", msgs: [] };
+      map[key].msgs.push(m);
+    });
+    return Object.values(map).sort((a, b) => new Date(b.msgs.at(-1)?.created_at) - new Date(a.msgs.at(-1)?.created_at));
+  }, [messages]);
+
+  const enviarResposta = async (companyId) => {
+    const texto = replyText[companyId];
+    if (!texto?.trim()) return;
+    setSendingReply(companyId);
+    try {
+      await replyMasterSupport(companyId, texto);
+      setReplyText(prev => ({ ...prev, [companyId]: "" }));
+      await load();
+    } catch (e) {
+      alert(e.message || "Erro ao enviar resposta.");
+    }
+    setSendingReply(null);
+  };
 
   return (
     <div style={{ ...sCard, overflow: "hidden" }}>
       <div style={{ padding: "14px 18px", borderBottom: `1px solid ${C.border}`, fontWeight: 700, fontSize: 14 }}>Mensagens de Suporte</div>
       {loading && <div style={{ padding: 20, textAlign: "center", color: C.textSec, fontSize: 12 }}>Carregando...</div>}
-      {!loading && messages.length === 0 && <div style={{ padding: 20, textAlign: "center", color: C.textLight, fontSize: 12 }}>Nenhuma mensagem de suporte ainda.</div>}
-      {messages.map(m => (
-        <div key={m.id} style={{ padding: "14px 18px", borderBottom: `1px solid ${C.border}` }}>
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-            <span style={{ fontWeight: 700, fontSize: 12, color: C.accent }}>{m.sender_email}</span>
-            <span style={{ fontSize: 10, color: C.textLight }}>{new Date(m.created_at).toLocaleString("pt-BR")}</span>
+      {!loading && threads.length === 0 && <div style={{ padding: 20, textAlign: "center", color: C.textLight, fontSize: 12 }}>Nenhuma mensagem de suporte ainda.</div>}
+      {threads.map(t => (
+        <div key={t.companyId || "sem-empresa"} style={{ padding: "14px 18px", borderBottom: `1px solid ${C.border}` }}>
+          <div style={{ fontWeight: 700, fontSize: 12, color: C.accent, marginBottom: 8 }}>{t.empresa}</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 10, maxHeight: 200, overflowY: "auto" }}>
+            {t.msgs.map(m => (
+              <div key={m.id} style={{ alignSelf: m.remetente === "master" ? "flex-end" : "flex-start", maxWidth: "85%", background: m.remetente === "master" ? C.accent : C.bg, color: m.remetente === "master" ? "#fff" : C.text, padding: "6px 10px", borderRadius: 6, fontSize: 12 }}>
+                {m.message}
+                <div style={{ fontSize: 9, opacity: 0.7, marginTop: 2 }}>{new Date(m.created_at).toLocaleString("pt-BR")}</div>
+              </div>
+            ))}
           </div>
-          <div style={{ fontSize: 13, color: C.text }}>{m.message}</div>
+          {t.companyId && <div style={{ display: "flex", gap: 6 }}>
+            <input value={replyText[t.companyId] || ""} onChange={e => setReplyText(prev => ({ ...prev, [t.companyId]: e.target.value }))} onKeyDown={e => e.key === "Enter" && enviarResposta(t.companyId)} placeholder="Responder..." style={{ ...sInput, flex: 1 }} />
+            <button onClick={() => enviarResposta(t.companyId)} disabled={sendingReply === t.companyId} style={sBtn()}>{sendingReply === t.companyId ? "..." : "Responder"}</button>
+          </div>}
         </div>
       ))}
     </div>
@@ -1721,6 +1758,28 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [profile, setProfile] = useState(null); // { company_id, cargo, nome, ... }
   const [loadingData, setLoadingData] = useState(false);
+  const [masterCompanies, setMasterCompanies] = useState([]);
+  const [poolCount, setPoolCount] = useState(0);
+  const [loadingMaster, setLoadingMaster] = useState(false);
+  const [platformTotal, setPlatformTotal] = useState(0);
+
+  // Recarrega os dados do Master: leads no estoque (pool) e lista de clientes reais
+  const reloadMasterData = async () => {
+    setLoadingMaster(true);
+    try {
+      const [poolLeads, companiesData] = await Promise.all([
+        fetchMasterPoolLeads({ limit: 5000 }),
+        fetchMasterCompanies(),
+      ]);
+      setLeads(poolLeads);
+      setMasterCompanies(companiesData.companies);
+      setPoolCount(companiesData.poolCount);
+    } catch (e) {
+      console.error("Erro ao carregar dados do Master:", e);
+      alert("Não foi possível carregar os dados do Master. Confira se SUPABASE_SERVICE_ROLE_KEY está configurada.");
+    }
+    setLoadingMaster(false);
+  };
 
   // Depois do login (não-master), garante perfil/empresa e carrega os dados reais
   const handleLoginSuccess = async (user) => {
@@ -1738,6 +1797,7 @@ export default function App() {
       setCollabs(dbCollabs);
       setPage(prof.cargo === "admin" ? "dashboard" : "leads");
       setView("app");
+      fetchPlatformLeadsTotal().then(setPlatformTotal);
     } catch (e) {
       console.error("Erro ao carregar dados:", e);
       alert("Não foi possível carregar seus dados. Tente novamente.");
@@ -1785,7 +1845,7 @@ export default function App() {
     <AuthPage
       onBack={() => setView("landing")}
       onLoginSuccess={handleLoginSuccess}
-      onMasterSuccess={() => { setCurrentUser({ email: MASTER_EMAIL }); setRole("master"); setPage("master"); setView("app"); }}
+      onMasterSuccess={() => { setCurrentUser({ email: MASTER_EMAIL }); setRole("master"); setPage("master"); setView("app"); reloadMasterData(); }}
     />
   );
 
@@ -1876,7 +1936,7 @@ export default function App() {
             />
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 14, flexShrink: 0 }}>
-            <button onClick={() => setShowSupport(!showSupport)} style={{ ...sBtn(C.bg, C.accent), border: `1px solid ${C.border}`, padding: "6px 14px", fontSize: 11 }}>Suporte</button>
+            {role !== "master" && <button onClick={() => setShowSupport(!showSupport)} style={{ ...sBtn(C.bg, C.accent), border: `1px solid ${C.border}`, padding: "6px 14px", fontSize: 11 }}>Suporte</button>}
             <div style={{ position: "relative" }}>
               <div onClick={() => setShowProfileMenu(!showProfileMenu)} style={{ cursor: "pointer", width: 32, height: 32, borderRadius: "50%", background: C.accentLight, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", border: `2px solid ${C.accent}` }}>
                 {profile?.avatar_url ? <img src={profile.avatar_url} alt="Perfil" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: 12, fontWeight: 700, color: C.accent }}>{(profile?.nome || currentUser?.email || "?").slice(0, 2).toUpperCase()}</span>}
@@ -1898,7 +1958,7 @@ export default function App() {
         </div>
         <div style={{ flex: 1, overflowY: "auto", padding: "20px 24px" }}>
           {page === "dashboard" && <DashboardPage leads={visibleLeads} collabs={collabs} />}
-          {page === "leads" && <LeadsPage leads={visibleLeads} setLeads={setLeads} collabs={collabs} isMaster={role === "master"} companyId={profile?.company_id} empresaNome={profile?.nome} userEmail={currentUser?.email} initialSearch={globalSearch} />}
+          {page === "leads" && <LeadsPage leads={visibleLeads} setLeads={setLeads} collabs={collabs} isMaster={role === "master"} companyId={profile?.company_id} empresaNome={profile?.nome} userEmail={currentUser?.email} initialSearch={globalSearch} masterCompanies={masterCompanies} onImportMaster={reloadMasterData} onDistributeMaster={reloadMasterData} onClearMaster={reloadMasterData} platformTotal={platformTotal} />}
           {page === "funil" && <FunnelPage leads={visibleLeads} setLeads={setLeads} collabs={collabs} />}
           {page === "negociações" && <NegociaçõesPage leads={visibleLeads} setLeads={setLeads} collabs={collabs} />}
           {page === "equipe" && <TeamPage collabs={collabs} setCollabs={setCollabs} leads={leads} companyId={profile?.company_id} />}
@@ -1908,10 +1968,10 @@ export default function App() {
           {page === "pagamentos" && <ManutencaoPage nome="Pagamentos" />}
           {page === "ajuda" && <HelpPage />}
           {page === "settings" && <SettingsPage profile={profile} currentUser={currentUser} onProfileUpdate={setProfile} />}
-          {page === "master" && <MasterPanel />}
+          {page === "master" && <MasterPanel companies={masterCompanies} poolCount={poolCount} loading={loadingMaster} onUpdateLimit={async (companyId, limit) => { await updateCompanyLeadsLimit(companyId, limit); await reloadMasterData(); }} />}
         </div>
       </div>
-      <SupportChat show={showSupport} onClose={() => setShowSupport(false)} userEmail={currentUser?.email} />
+      <SupportChat show={showSupport} onClose={() => setShowSupport(false)} userEmail={currentUser?.email} companyId={profile?.company_id} />
     </div>
   );
 }
