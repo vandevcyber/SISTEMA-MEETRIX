@@ -10,14 +10,17 @@ function admin() {
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Método não permitido" });
 
-  const { companyId, status } = req.body || {};
+  const { companyId, status, reason } = req.body || {};
   if (!companyId || !["ativo", "bloqueado"].includes(status)) {
     return res.status(400).json({ error: "Dados inválidos" });
   }
 
   try {
     const supabaseAdmin = admin();
-    const { error } = await supabaseAdmin.from("companies").update({ status }).eq("id", companyId);
+    const patch = { status };
+    if (status === "bloqueado") patch.blocked_reason = reason || "Sua conta está temporariamente bloqueada. Entre em contato com o suporte da Meetrix para regularizar o acesso.";
+    else patch.blocked_reason = null;
+    const { error } = await supabaseAdmin.from("companies").update(patch).eq("id", companyId);
     if (error) throw error;
     return res.status(200).json({ ok: true });
   } catch (err) {

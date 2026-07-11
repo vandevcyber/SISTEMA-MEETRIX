@@ -9,7 +9,7 @@ function admin() {
 export default async function handler(req, res) {
   if (req.method !== "GET") return res.status(405).json({ error: "Método não permitido" });
 
-  const { search = "", limit = "2000", offset = "0" } = req.query;
+  const { search = "", limit = "2000", offset = "0", segmento = "", estado = "" } = req.query;
 
   try {
     const supabaseAdmin = admin();
@@ -24,6 +24,8 @@ export default async function handler(req, res) {
       const s = search.replace(/[%,]/g, "");
       query = query.or(`empresa.ilike.%${s}%,nome.ilike.%${s}%,cnpj.ilike.%${s}%`);
     }
+    if (segmento) query = query.eq("segmento", segmento);
+    if (estado) query = query.eq("estado", estado);
 
     const { data, error } = await query;
     if (error) throw error;

@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { supabase, MASTER_EMAIL, MASTER_PASSWORD } from "./supabaseClient.js";
-import { ensureProfileAndCompany, fetchLeads, fetchCollabs, insertLeads, updateLeadDb, deleteLeadsDb, clearAllLeadsDb, inviteCollaborator, removeCollaboratorDb, uploadMedia, updateProfileFields, fetchGroups, createGroupDb, updateGroupMembersDb, fetchChatMessages, sendChatMessage, subscribeToChat, logExport, fetchExportLogs, fetchMasterCompanies, fetchMasterPoolLeads, importMasterLeads, distributeMasterLeads, clearMasterPool, fetchPlatformLeadsTotal, updateCompanyLeadsLimit, fetchMasterSupportMessages, replyMasterSupport, fetchCompanySupportMessages, sendSupportMessageDb, subscribeToSupport, toggleCompanyStatus, deleteCompanyMaster, fetchCompanyStatus, fetchPincelabSheet, savePincelabSheet, appendLeadsToPincelab } from "./db.js";
+import { ensureProfileAndCompany, fetchLeads, fetchCollabs, insertLeads, updateLeadDb, deleteLeadsDb, clearAllLeadsDb, inviteCollaborator, removeCollaboratorDb, uploadMedia, updateProfileFields, fetchGroups, createGroupDb, updateGroupMembersDb, fetchChatMessages, sendChatMessage, subscribeToChat, logExport, fetchExportLogs, fetchMasterCompanies, fetchMasterPoolLeads, importMasterLeads, distributeMasterLeads, clearMasterPool, fetchPlatformLeadsTotal, updateCompanyLeadsLimit, fetchMasterSupportMessages, replyMasterSupport, fetchCompanySupportMessages, sendSupportMessageDb, subscribeToSupport, toggleCompanyStatus, deleteCompanyMaster, fetchCompanyStatus, fetchPincelabSheet, savePincelabSheet, appendLeadsToPincelab, fetchMasterPoolFilters } from "./db.js";
 import { gerarCodigoExportacao, embutirMarcaDagua } from "./watermark.js";
 
 const LOGO = "data:image/png;base64,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";
@@ -456,23 +456,54 @@ function NegociaçõesPage({ leads, setLeads, collabs }) {
 
 /* ═══ LEADS PAGE ═══ */
 
-function LeadsPage({ leads, setLeads, collabs, isMaster, companyId, empresaNome, userEmail, initialSearch, masterCompanies = [], onImportMaster, onDistributeMaster, onClearMaster, platformTotal = 0 }) {
+function LeadsPage({ leads, setLeads, collabs, isMaster, companyId, empresaNome, userEmail, initialSearch, masterCompanies = [], onImportMaster, onDistributeMaster, onClearMaster, platformTotal = 0, realPoolTotal = 0 }) {
   const [importingMaster, setImportingMaster] = useState(false);
   const [distributingMaster, setDistributingMaster] = useState(false);
   const [search, setSearch] = useState(initialSearch || ""); const [fSeg, setFSeg] = useState(""); const [fUF, setFUF] = useState(""); const [fStatus, setFStatus] = useState("");
   const [selected, setSelected] = useState(new Set()); const [showImport, setShowImport] = useState(false); const [showDist, setShowDist] = useState(false); const [detail, setDetail] = useState(null); const [importResult, setImportResult] = useState(0);
   const fileRef = useRef();
+  const [poolFilterOptions, setPoolFilterOptions] = useState({ segmentos: [], estados: [] });
+  const [searchingPool, setSearchingPool] = useState(false);
+  const searchDebounce = useRef(null);
+  const poolLoadedOnce = useRef(false);
 
   useEffect(() => { if (initialSearch) setSearch(initialSearch); }, [initialSearch]);
 
-  const segs = useMemo(() => [...new Set(leads.map(l => l.segmento || l.cnae).filter(Boolean))].sort(), [leads]);
-  const ufs = useMemo(() => [...new Set(leads.map(l => l.estado).filter(Boolean))].sort(), [leads]);
+  // Master: busca as opções reais de filtro (de todo o estoque, não só do que já foi carregado)
+  useEffect(() => {
+    if (!isMaster) return;
+    fetchMasterPoolFilters().then(setPoolFilterOptions).catch(console.error);
+  }, [isMaster]);
+
+  // Master: o estoque pode ter centenas de milhares de leads — o Supabase só devolve até 1000
+  // por consulta, então a busca por texto/segmento/estado é feita direto no servidor,
+  // em vez de filtrar só os que já estão carregados no navegador.
+  useEffect(() => {
+    if (!isMaster) return;
+    if (!poolLoadedOnce.current && !search && !fSeg && !fUF) { poolLoadedOnce.current = true; return; } // evita refazer a busca inicial que o App já fez
+    setSearchingPool(true);
+    clearTimeout(searchDebounce.current);
+    searchDebounce.current = setTimeout(async () => {
+      try {
+        const resultado = await fetchMasterPoolLeads({ search, segmento: fSeg, estado: fUF, limit: 500 });
+        setLeads(resultado);
+      } catch (e) { console.error(e); }
+      setSearchingPool(false);
+    }, 400);
+    return () => clearTimeout(searchDebounce.current);
+  }, [isMaster, search, fSeg, fUF]);
+
+  const localSegs = useMemo(() => [...new Set(leads.map(l => l.segmento || l.cnae).filter(Boolean))].sort(), [leads]);
+  const localUfs = useMemo(() => [...new Set(leads.map(l => l.estado).filter(Boolean))].sort(), [leads]);
+  const segs = isMaster ? poolFilterOptions.segmentos : localSegs;
+  const ufs = isMaster ? poolFilterOptions.estados : localUfs;
 
   const filtered = useMemo(() => leads.filter(l => {
+    if (isMaster) return !fStatus || l.status === fStatus; // busca (texto/segmento/estado) já veio filtrada do servidor
     const q = search.toLowerCase();
     return (!q || [l.empresa, l.nome, l.cnpj, l.segmento, l.cnae, l.cidade].some(f => (f || "").toLowerCase().includes(q)))
       && (!fSeg || (l.segmento || l.cnae) === fSeg) && (!fUF || l.estado === fUF) && (!fStatus || l.status === fStatus);
-  }), [leads, search, fSeg, fUF, fStatus]);
+  }), [leads, search, fSeg, fUF, fStatus, isMaster]);
 
   const [importProgress, setImportProgress] = useState(null); // { done, total }
 
@@ -587,7 +618,8 @@ function LeadsPage({ leads, setLeads, collabs, isMaster, companyId, empresaNome,
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
         <div>
-          <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>{isMaster ? `Estoque de leads (${leads.length})` : `Leads (${leads.length})`}</h2>
+          <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>{isMaster ? `Estoque de leads` : `Leads (${leads.length})`}</h2>
+          {isMaster && <div style={{ fontSize: 11, color: C.textSec, marginTop: 2 }}>{searchingPool ? "Buscando..." : (search || fSeg || fUF) ? `${leads.length.toLocaleString("pt-BR")} resultados encontrados (mostrando até 500)` : `Mostrando ${leads.length.toLocaleString("pt-BR")} de ${realPoolTotal.toLocaleString("pt-BR")} no estoque total — use a busca ou os filtros pra encontrar leads específicos`}</div>}
           {!isMaster && platformTotal > 0 && <div style={{ fontSize: 11, color: C.textSec, marginTop: 2 }}>Leads na plataforma: <strong>{platformTotal.toLocaleString("pt-BR")}</strong> • você tem <strong>{leads.length.toLocaleString("pt-BR")}</strong> disponíveis</div>}
         </div>
         <div style={{ display: "flex", gap: 8 }}>
@@ -1436,13 +1468,23 @@ function ManutencaoPage({ nome }) {
 }
 
 /* ═══ PINCELAB (planilha livre, estilo Excel/Sheets) ═══ */
+const FONT_OPTIONS = ["Arial", "Times New Roman", "Georgia", "Verdana", "Courier New"];
+const FONT_SIZES = [9, 10, 11, 12, 14, 16, 18, 20, 24];
+
 function PincelabPage({ companyId }) {
   const [columns, setColumns] = useState([]);
   const [rows, setRows] = useState([]);
+  const [colWidths, setColWidths] = useState([]);
+  const [styles, setStyles] = useState({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [selectedCell, setSelectedCell] = useState(null); // { r, c }
+  const [openFilter, setOpenFilter] = useState(null); // idx da coluna com o dropdown de filtro aberto
+  const [columnFilters, setColumnFilters] = useState({}); // { colIdx: Set(valores permitidos) }
   const saveTimer = useRef(null);
   const loadedOnce = useRef(false);
+  const colCounter = useRef(0);
+  const resizing = useRef(null);
 
   useEffect(() => {
     if (!companyId) return;
@@ -1450,8 +1492,12 @@ function PincelabPage({ companyId }) {
       setLoading(true);
       const sheet = await fetchPincelabSheet(companyId);
       if (sheet) {
-        setColumns(sheet.columns || ["Coluna A", "Coluna B", "Coluna C", "Coluna D"]);
+        const cols = sheet.columns || ["Empresa", "Contato", "Telefone", "Email", "Status", "Observações"];
+        setColumns(cols);
         setRows(sheet.rows || []);
+        setColWidths(sheet.col_widths?.length === cols.length ? sheet.col_widths : cols.map(() => 150));
+        setStyles(sheet.styles || {});
+        colCounter.current = cols.length;
       }
       loadedOnce.current = true;
       setLoading(false);
@@ -1464,64 +1510,160 @@ function PincelabPage({ companyId }) {
     setSaving(true);
     clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(async () => {
-      await savePincelabSheet(companyId, columns, rows);
+      try { await savePincelabSheet(companyId, columns, rows, colWidths, styles); } catch (e) { console.error(e); }
       setSaving(false);
     }, 900);
     return () => clearTimeout(saveTimer.current);
-  }, [columns, rows]);
+  }, [columns, rows, colWidths, styles]);
 
-  const addColumn = () => setColumns(prev => [...prev, `Coluna ${String.fromCharCode(65 + prev.length)}`]);
-  const removeColumn = (idx) => { setColumns(prev => prev.filter((_, i) => i !== idx)); setRows(prev => prev.map(r => r.filter((_, i) => i !== idx))); };
+  const addColumn = () => {
+    colCounter.current += 1;
+    setColumns(prev => [...prev, `Coluna ${colCounter.current}`]);
+    setColWidths(prev => [...prev, 150]);
+  };
+  const removeColumn = (idx) => {
+    setColumns(prev => prev.filter((_, i) => i !== idx));
+    setColWidths(prev => prev.filter((_, i) => i !== idx));
+    setRows(prev => prev.map(r => r.filter((_, i) => i !== idx)));
+    setColumnFilters(prev => { const n = { ...prev }; delete n[idx]; return n; });
+  };
   const renameColumn = (idx, val) => setColumns(prev => prev.map((c, i) => i === idx ? val : c));
-  const addRow = () => setRows(prev => [...prev, columns.map(() => "")]);
+  const addRow = (qtd = 1) => setRows(prev => [...prev, ...Array.from({ length: qtd }, () => columns.map(() => ""))]);
   const removeRow = (idx) => setRows(prev => prev.filter((_, i) => i !== idx));
   const setCell = (r, c, val) => setRows(prev => prev.map((row, i) => i === r ? row.map((cell, j) => j === c ? val : cell) : row));
-  const limparTudo = () => { if (window.confirm("Limpar toda a planilha do PincelAb? Essa ação não pode ser desfeita.")) { setColumns(["Coluna A", "Coluna B", "Coluna C", "Coluna D"]); setRows([]); } };
+  const limparTudo = () => { if (window.confirm("Limpar toda a planilha do PincelAb? Essa ação não pode ser desfeita.")) { setColumns(["Empresa", "Contato", "Telefone", "Email", "Status", "Observações"]); setRows(Array.from({ length: 1000 }, () => Array(6).fill(""))); setStyles({}); colCounter.current = 6; } };
+
+  // Formatação da célula selecionada
+  const cellKey = (r, c) => `${r}-${c}`;
+  const currentStyle = selectedCell ? (styles[cellKey(selectedCell.r, selectedCell.c)] || {}) : {};
+  const applyStyle = (patch) => {
+    if (!selectedCell) return;
+    setStyles(prev => ({ ...prev, [cellKey(selectedCell.r, selectedCell.c)]: { ...prev[cellKey(selectedCell.r, selectedCell.c)], ...patch } }));
+  };
+
+  // Redimensionar coluna arrastando a borda
+  const startResize = (idx, e) => {
+    resizing.current = { idx, startX: e.clientX, startWidth: colWidths[idx] || 150 };
+    const onMove = (ev) => {
+      if (!resizing.current) return;
+      const novaLargura = Math.max(60, resizing.current.startWidth + (ev.clientX - resizing.current.startX));
+      setColWidths(prev => prev.map((w, i) => i === resizing.current.idx ? novaLargura : w));
+    };
+    const onUp = () => { resizing.current = null; window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  };
+
+  // Valores únicos de uma coluna (pra montar o filtro)
+  const valoresUnicos = (colIdx) => [...new Set(rows.map(r => r[colIdx] || "").filter(v => v !== ""))].sort();
+  const toggleFiltroValor = (colIdx, valor) => {
+    setColumnFilters(prev => {
+      const atual = prev[colIdx] || new Set(valoresUnicos(colIdx));
+      const novo = new Set(atual);
+      novo.has(valor) ? novo.delete(valor) : novo.add(valor);
+      return { ...prev, [colIdx]: novo };
+    });
+  };
+  const linhaVisivel = (row) => Object.entries(columnFilters).every(([colIdx, permitidos]) => {
+    const v = row[colIdx] || "";
+    if (v === "") return true; // não esconde linhas em branco
+    return permitidos.has(v);
+  });
+  const rowsFiltradas = rows.map((r, idx) => ({ r, idx })).filter(({ r }) => linhaVisivel(r));
+  const temFiltroAtivo = Object.keys(columnFilters).length > 0;
 
   if (loading) return <div style={{ padding: 40, textAlign: "center", color: C.textSec, fontSize: 12 }}>Carregando PincelAb...</div>;
 
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
         <div>
           <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>PincelAb</h2>
-          <div style={{ fontSize: 11, color: C.textSec, marginTop: 2 }}>Sua planilha livre — organize os leads do seu jeito. {saving ? "Salvando..." : "Tudo salvo."}</div>
+          <div style={{ fontSize: 11, color: C.textSec, marginTop: 2 }}>Sua planilha livre — organize os leads do seu jeito. {saving ? "Salvando..." : "Tudo salvo."}{temFiltroAtivo && " • Filtro ativo"}</div>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
           <button onClick={addColumn} style={sBtn(C.bg, C.accent)}>+ Coluna</button>
-          <button onClick={addRow} style={sBtn()}>+ Linha</button>
+          <button onClick={() => addRow(1)} style={sBtn()}>+ Linha</button>
+          <button onClick={() => addRow(100)} style={sBtn(C.bg, C.accent)}>+ 100 linhas</button>
           <button onClick={limparTudo} style={sBtn(C.red)}>Limpar tudo</button>
         </div>
       </div>
-      <div style={{ ...sCard, overflow: "auto", maxHeight: "70vh" }}>
-        <table style={{ borderCollapse: "collapse", fontSize: 12, minWidth: "100%" }}>
+
+      {/* Barra de formatação, estilo Google Sheets — aplica na célula selecionada */}
+      <div style={{ ...sCard, padding: "8px 12px", marginBottom: 10, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", opacity: selectedCell ? 1 : 0.5 }}>
+        <span style={{ fontSize: 10, color: C.textSec, fontWeight: 600 }}>{selectedCell ? "Formatar célula:" : "Clique numa célula pra formatar"}</span>
+        <select disabled={!selectedCell} value={currentStyle.fontFamily || "Arial"} onChange={e => applyStyle({ fontFamily: e.target.value })} style={{ ...sSelect, width: 160, padding: "4px 8px", fontSize: 11 }}>
+          {FONT_OPTIONS.map(f => <option key={f} value={f}>{f}</option>)}
+        </select>
+        <select disabled={!selectedCell} value={currentStyle.fontSize || 12} onChange={e => applyStyle({ fontSize: Number(e.target.value) })} style={{ ...sSelect, width: 64, padding: "4px 8px", fontSize: 11 }}>
+          {FONT_SIZES.map(s => <option key={s} value={s}>{s}</option>)}
+        </select>
+        <button disabled={!selectedCell} onClick={() => applyStyle({ bold: !currentStyle.bold })} style={{ ...sBtn(currentStyle.bold ? C.accent : C.bg, currentStyle.bold ? "#fff" : C.text), padding: "5px 12px", fontWeight: 800 }}>B</button>
+        <button disabled={!selectedCell} onClick={() => applyStyle({ italic: !currentStyle.italic })} style={{ ...sBtn(currentStyle.italic ? C.accent : C.bg, currentStyle.italic ? "#fff" : C.text), padding: "5px 12px", fontStyle: "italic" }}>I</button>
+        <input disabled={!selectedCell} type="color" value={currentStyle.color || "#111111"} onChange={e => applyStyle({ color: e.target.value })} style={{ width: 30, height: 26, border: `1px solid ${C.border}`, borderRadius: 4, cursor: "pointer" }} title="Cor do texto" />
+        <input disabled={!selectedCell} type="color" value={currentStyle.bg || "#ffffff"} onChange={e => applyStyle({ bg: e.target.value })} style={{ width: 30, height: 26, border: `1px solid ${C.border}`, borderRadius: 4, cursor: "pointer" }} title="Cor de fundo" />
+        {temFiltroAtivo && <button onClick={() => setColumnFilters({})} style={{ ...sBtn(C.bg, C.red), fontSize: 11 }}>Limpar filtros</button>}
+      </div>
+
+      <div style={{ ...sCard, overflow: "auto", maxHeight: "65vh", position: "relative" }}>
+        <table style={{ borderCollapse: "collapse", fontSize: 12, tableLayout: "fixed" }}>
           <thead>
             <tr style={{ background: C.bg }}>
-              <th style={{ padding: "8px 10px", width: 32, borderBottom: `1px solid ${C.border}`, borderRight: `1px solid ${C.border}` }}></th>
-              {columns.map((col, ci) => (
-                <th key={ci} style={{ padding: "6px 8px", borderBottom: `1px solid ${C.border}`, borderRight: `1px solid ${C.border}`, minWidth: 140 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                    <input value={col} onChange={e => renameColumn(ci, e.target.value)} style={{ ...sInput, padding: "4px 6px", fontWeight: 700, fontSize: 11 }} />
-                    <button onClick={() => removeColumn(ci)} title="Remover coluna" style={{ background: "none", border: "none", color: C.red, cursor: "pointer", fontSize: 14, lineHeight: 1 }}>×</button>
-                  </div>
-                </th>
-              ))}
+              <th style={{ padding: "8px 6px", width: 36, borderBottom: `1px solid ${C.border}`, borderRight: `1px solid ${C.border}`, position: "sticky", left: 0, background: C.bg, zIndex: 2 }}></th>
+              {columns.map((col, ci) => {
+                const unicos = valoresUnicos(ci);
+                const permitidos = columnFilters[ci];
+                return (
+                  <th key={ci} style={{ padding: "6px 6px", borderBottom: `1px solid ${C.border}`, borderRight: `1px solid ${C.border}`, width: colWidths[ci] || 150, position: "relative" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
+                      <input value={col} onChange={e => renameColumn(ci, e.target.value)} style={{ ...sInput, padding: "4px 5px", fontWeight: 700, fontSize: 11, minWidth: 0, flex: 1 }} />
+                      <button onClick={() => setOpenFilter(openFilter === ci ? null : ci)} title="Filtrar" style={{ background: "none", border: "none", color: permitidos ? C.accent : C.textSec, cursor: "pointer", fontSize: 12, padding: "2px 3px" }}>▾</button>
+                      <button onClick={() => removeColumn(ci)} title="Remover coluna" style={{ background: "none", border: "none", color: C.red, cursor: "pointer", fontSize: 14, lineHeight: 1, padding: "0 2px" }}>×</button>
+                    </div>
+                    {openFilter === ci && (
+                      <div style={{ position: "absolute", top: "100%", left: 0, background: "#fff", border: `1px solid ${C.border}`, borderRadius: 6, boxShadow: "0 4px 14px rgba(0,0,0,.12)", zIndex: 10, width: 200, maxHeight: 220, overflowY: "auto", padding: 8 }}>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: C.textSec, marginBottom: 6, display: "flex", justifyContent: "space-between" }}>
+                          <span>Filtrar "{col}"</span>
+                          <button onClick={() => setColumnFilters(prev => { const n = { ...prev }; delete n[ci]; return n; })} style={{ background: "none", border: "none", color: C.accent, cursor: "pointer", fontSize: 10 }}>Tudo</button>
+                        </div>
+                        {unicos.length === 0 && <div style={{ fontSize: 11, color: C.textLight }}>Sem valores ainda.</div>}
+                        {unicos.map(v => (
+                          <label key={v} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, padding: "3px 0", cursor: "pointer" }}>
+                            <input type="checkbox" checked={!permitidos || permitidos.has(v)} onChange={() => toggleFiltroValor(ci, v)} />
+                            <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{v}</span>
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                    <div onMouseDown={e => startResize(ci, e)} style={{ position: "absolute", top: 0, right: 0, width: 6, height: "100%", cursor: "col-resize" }} />
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           <tbody>
-            {rows.length === 0 && (
-              <tr><td colSpan={columns.length + 1} style={{ padding: 24, textAlign: "center", color: C.textLight, fontSize: 12 }}>Planilha vazia. Clique em "+ Linha" pra começar, ou mande leads da tela de Leads direto pra cá.</td></tr>
+            {rowsFiltradas.length === 0 && (
+              <tr><td colSpan={columns.length + 1} style={{ padding: 24, textAlign: "center", color: C.textLight, fontSize: 12 }}>Nenhuma linha visível. {temFiltroAtivo ? "Confere os filtros ativos." : "Clique em \"+ Linha\" ou mande leads da tela de Leads direto pra cá."}</td></tr>
             )}
-            {rows.map((row, ri) => (
+            {rowsFiltradas.map(({ r: row, idx: ri }) => (
               <tr key={ri} style={{ borderBottom: `1px solid ${C.border}` }}>
-                <td style={{ padding: "4px 8px", textAlign: "center", borderRight: `1px solid ${C.border}`, color: C.textLight, fontSize: 10 }}>
+                <td style={{ padding: "4px 6px", textAlign: "center", borderRight: `1px solid ${C.border}`, color: C.textLight, fontSize: 10, position: "sticky", left: 0, background: "#fff" }}>
                   <button onClick={() => removeRow(ri)} title="Remover linha" style={{ background: "none", border: "none", color: C.red, cursor: "pointer", fontSize: 13 }}>×</button>
                 </td>
-                {columns.map((_, ci) => (
-                  <td key={ci} style={{ padding: 0, borderRight: `1px solid ${C.border}` }}>
-                    <input value={row[ci] || ""} onChange={e => setCell(ri, ci, e.target.value)} style={{ width: "100%", boxSizing: "border-box", border: "none", padding: "7px 8px", fontSize: 12, fontFamily: font, outline: "none", background: "transparent" }} />
-                  </td>
-                ))}
+                {columns.map((_, ci) => {
+                  const st = styles[cellKey(ri, ci)] || {};
+                  const selecionada = selectedCell && selectedCell.r === ri && selectedCell.c === ci;
+                  return (
+                    <td key={ci} style={{ padding: 0, borderRight: `1px solid ${C.border}`, background: st.bg || (selecionada ? C.accentLight : "transparent"), outline: selecionada ? `2px solid ${C.accent}` : "none", outlineOffset: -2 }}>
+                      <input
+                        value={row[ci] || ""}
+                        onFocus={() => setSelectedCell({ r: ri, c: ci })}
+                        onChange={e => setCell(ri, ci, e.target.value)}
+                        style={{ width: "100%", boxSizing: "border-box", border: "none", padding: "7px 8px", fontSize: st.fontSize || 12, fontFamily: st.fontFamily || font, fontWeight: st.bold ? 700 : 400, fontStyle: st.italic ? "italic" : "normal", color: st.color || C.text, outline: "none", background: "transparent" }}
+                      />
+                    </td>
+                  );
+                })}
               </tr>
             ))}
           </tbody>
@@ -1640,10 +1782,14 @@ function MasterPanel({ companies, poolCount, loading, onUpdateLimit, onToggleSta
 
   const alternarStatus = async (c) => {
     const novoStatus = c.status === "bloqueado" ? "ativo" : "bloqueado";
-    if (novoStatus === "bloqueado" && !window.confirm(`Bloquear "${c.empresa}"? Ninguém da equipe dessa empresa vai conseguir acessar o sistema até você desbloquear.`)) return;
+    let motivo = "";
+    if (novoStatus === "bloqueado") {
+      motivo = window.prompt(`Bloquear "${c.empresa}"? Ninguém da equipe dessa empresa vai conseguir acessar o sistema até você desbloquear.\n\nEscreva o motivo que o cliente vai ver na tela (ex: "Pagamento pendente. Entre em contato pelo WhatsApp XX."):`, "Pagamento pendente. Entre em contato com o suporte para regularizar.");
+      if (motivo === null) return; // cancelou
+    }
     setToggling(c.id);
     try {
-      await onToggleStatus(c.id, novoStatus);
+      await onToggleStatus(c.id, novoStatus, motivo);
     } catch (e) {
       alert(e.message || "Erro ao alterar o status.");
     }
@@ -1930,6 +2076,7 @@ export default function App() {
   };
 
   const [blocked, setBlocked] = useState(false);
+  const [blockedReason, setBlockedReason] = useState("");
 
   // Depois do login (não-master), garante perfil/empresa e carrega os dados reais
   const handleLoginSuccess = async (user) => {
@@ -1937,8 +2084,9 @@ export default function App() {
     setLoadingData(true);
     try {
       const prof = await ensureProfileAndCompany(user);
-      const status = await fetchCompanyStatus(prof.company_id);
-      if (status === "bloqueado") {
+      const statusInfo = await fetchCompanyStatus(prof.company_id);
+      if (statusInfo.status === "bloqueado") {
+        setBlockedReason(statusInfo.reason || "");
         setBlocked(true);
         setLoadingData(false);
         return; // não carrega leads, equipe, nada — acesso totalmente bloqueado
@@ -1997,14 +2145,6 @@ export default function App() {
 
   if (view === "landing") return <LandingPage onLogin={() => setView("login")} />;
 
-  if (view === "login") return (
-    <AuthPage
-      onBack={() => setView("landing")}
-      onLoginSuccess={handleLoginSuccess}
-      onMasterSuccess={() => { setCurrentUser({ email: MASTER_EMAIL }); setRole("master"); setPage("master"); setView("app"); reloadMasterData(); }}
-    />
-  );
-
   if (blocked) return (
     <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: font, background: C.bg, padding: 20 }}>
       <div style={{ ...sCard, maxWidth: 420, padding: 32, textAlign: "center" }}>
@@ -2012,10 +2152,18 @@ export default function App() {
           <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke={C.red} strokeWidth="2.5"><circle cx="12" cy="12" r="10" /><path d="M4.9 4.9l14.2 14.2" /></svg>
         </div>
         <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>Acesso bloqueado</div>
-        <div style={{ fontSize: 13, color: C.textSec, marginBottom: 20 }}>Sua conta está temporariamente bloqueada. Entre em contato com o suporte da Meetrix para regularizar o acesso.</div>
-        <button onClick={() => { setBlocked(false); setView("landing"); setCurrentUser(null); }} style={{ ...sBtn(), width: "100%" }}>Voltar</button>
+        <div style={{ fontSize: 13, color: C.textSec, marginBottom: 20 }}>{blockedReason || "Sua conta está temporariamente bloqueada. Entre em contato com o suporte da Meetrix para regularizar o acesso."}</div>
+        <button onClick={() => { setBlocked(false); setBlockedReason(""); setView("landing"); setCurrentUser(null); }} style={{ ...sBtn(), width: "100%" }}>Voltar</button>
       </div>
     </div>
+  );
+
+  if (view === "login") return (
+    <AuthPage
+      onBack={() => setView("landing")}
+      onLoginSuccess={handleLoginSuccess}
+      onMasterSuccess={() => { setCurrentUser({ email: MASTER_EMAIL }); setRole("master"); setPage("master"); setView("app"); reloadMasterData(); }}
+    />
   );
 
   if (loadingData) return (
@@ -2127,7 +2275,7 @@ export default function App() {
         </div>
         <div style={{ flex: 1, overflowY: "auto", padding: "20px 24px" }}>
           {page === "dashboard" && <DashboardPage leads={visibleLeads} collabs={collabs} />}
-          {page === "leads" && <LeadsPage leads={visibleLeads} setLeads={setLeads} collabs={collabs} isMaster={role === "master"} companyId={profile?.company_id} empresaNome={profile?.nome} userEmail={currentUser?.email} initialSearch={globalSearch} masterCompanies={masterCompanies} onImportMaster={reloadMasterData} onDistributeMaster={reloadMasterData} onClearMaster={reloadMasterData} platformTotal={platformTotal} />}
+          {page === "leads" && <LeadsPage leads={visibleLeads} setLeads={setLeads} collabs={collabs} isMaster={role === "master"} companyId={profile?.company_id} empresaNome={profile?.nome} userEmail={currentUser?.email} initialSearch={globalSearch} masterCompanies={masterCompanies} onImportMaster={reloadMasterData} onDistributeMaster={reloadMasterData} onClearMaster={reloadMasterData} platformTotal={platformTotal} realPoolTotal={poolCount} />}
           {page === "funil" && <FunnelPage leads={visibleLeads} setLeads={setLeads} collabs={collabs} />}
           {page === "pincelab" && <PincelabPage companyId={profile?.company_id} />}
           {page === "negociações" && <NegociaçõesPage leads={visibleLeads} setLeads={setLeads} collabs={collabs} />}
@@ -2138,7 +2286,7 @@ export default function App() {
           {page === "pagamentos" && <ManutencaoPage nome="Pagamentos" />}
           {page === "ajuda" && <HelpPage />}
           {page === "settings" && <SettingsPage profile={profile} currentUser={currentUser} onProfileUpdate={setProfile} />}
-          {page === "master" && <MasterPanel companies={masterCompanies} poolCount={poolCount} loading={loadingMaster} onUpdateLimit={async (companyId, limit) => { await updateCompanyLeadsLimit(companyId, limit); await reloadMasterData(); }} onToggleStatus={async (companyId, status) => { await toggleCompanyStatus(companyId, status); await reloadMasterData(); }} onDeleteCompany={async (companyId) => { await deleteCompanyMaster(companyId); await reloadMasterData(); }} />}
+          {page === "master" && <MasterPanel companies={masterCompanies} poolCount={poolCount} loading={loadingMaster} onUpdateLimit={async (companyId, limit) => { await updateCompanyLeadsLimit(companyId, limit); await reloadMasterData(); }} onToggleStatus={async (companyId, status, reason) => { await toggleCompanyStatus(companyId, status, reason); await reloadMasterData(); }} onDeleteCompany={async (companyId) => { await deleteCompanyMaster(companyId); await reloadMasterData(); }} />}
         </div>
       </div>
       <SupportChat show={showSupport} onClose={() => setShowSupport(false)} userEmail={currentUser?.email} companyId={profile?.company_id} />

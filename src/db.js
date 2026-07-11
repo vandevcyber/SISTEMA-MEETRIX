@@ -115,12 +115,19 @@ export async function fetchMasterCompanies() {
   return data; // { companies: [...], poolCount: n }
 }
 
-export async function fetchMasterPoolLeads({ search = "", limit = 2000, offset = 0 } = {}) {
-  const params = new URLSearchParams({ search, limit: String(limit), offset: String(offset) });
+export async function fetchMasterPoolLeads({ search = "", limit = 2000, offset = 0, segmento = "", estado = "" } = {}) {
+  const params = new URLSearchParams({ search, limit: String(limit), offset: String(offset), segmento, estado });
   const r = await fetch(`/api/master-pool-leads?${params}`);
   const data = await r.json();
   if (!r.ok) throw new Error(data.error || "Erro ao buscar leads do estoque");
   return data.leads.map(mapLeadFromDb);
+}
+
+export async function fetchMasterPoolFilters() {
+  const r = await fetch("/api/master-pool-filters");
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.error || "Erro ao buscar filtros do estoque");
+  return data; // { segmentos: [...], estados: [...] }
 }
 
 export async function importMasterLeads(leadsArray, onProgress) {
@@ -167,10 +174,10 @@ export async function fetchPlatformLeadsTotal() {
   return data;
 }
 
-export async function toggleCompanyStatus(companyId, status) {
+export async function toggleCompanyStatus(companyId, status, reason) {
   const r = await fetch("/api/master-toggle-company", {
     method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ companyId, status }),
+    body: JSON.stringify({ companyId, status, reason }),
   });
   const data = await r.json();
   if (!r.ok) throw new Error(data.error || "Erro ao atualizar o status do cliente");
@@ -185,11 +192,11 @@ export async function deleteCompanyMaster(companyId) {
   if (!r.ok) throw new Error(data.error || "Erro ao excluir o cliente");
 }
 
-// Usado logo após o login do cliente, pra saber se a empresa está bloqueada
+// Usado logo após o login do cliente, pra saber se a empresa está bloqueada (e por quê)
 export async function fetchCompanyStatus(companyId) {
-  const { data, error } = await supabase.from("companies").select("status").eq("id", companyId).maybeSingle();
-  if (error) { console.error(error); return "ativo"; }
-  return data?.status || "ativo";
+  const { data, error } = await supabase.from("companies").select("status, blocked_reason").eq("id", companyId).maybeSingle();
+  if (error) { console.error(error); return { status: "ativo", reason: "" }; }
+  return { status: data?.status || "ativo", reason: data?.blocked_reason || "" };
 }
 
 export async function updateCompanyLeadsLimit(companyId, leadsLimit) {
@@ -251,36 +258,56 @@ export async function fetchPincelabSheet(companyId) {
   const { data, error } = await supabase.from("pincelab_sheets").select("*").eq("company_id", companyId).maybeSingle();
   if (error) { console.error(error); return null; }
   if (data) return data;
-  // Primeira vez: cria a planilha vazia pra essa empresa
+  // Primeira vez: cria a planilha já com 1000 linhas em branco
+  const columns = ["Empresa", "Contato", "Telefone", "Email", "Status", "Observações"];
+  const rows = Array.from({ length: 1000 }, () => columns.map(() => ""));
   const { data: created, error: createErr } = await supabase
     .from("pincelab_sheets")
-    .insert({ company_id: companyId })
+    .insert({ company_id: companyId, columns, rows })
     .select()
     .single();
   if (createErr) { console.error(createErr); return null; }
   return created;
 }
 
-export async function savePincelabSheet(companyId, columns, rows) {
+export async function savePincelabSheet(companyId, columns, rows, colWidths, styles) {
+  const patch = { columns, rows, updated_at: new Date().toISOString() };
+  if (colWidths !== undefined) patch.col_widths = colWidths;
+  if (styles !== undefined) patch.styles = styles;
   const { error } = await supabase
     .from("pincelab_sheets")
-    .update({ columns, rows, updated_at: new Date().toISOString() })
+    .update(patch)
     .eq("company_id", companyId);
-  if (error) console.error(error);
+  if (error) throw error;
 }
 
 export async function appendLeadsToPincelab(companyId, leadsArray) {
   const sheet = await fetchPincelabSheet(companyId);
   if (!sheet) throw new Error("Não foi possível abrir o PincelAb dessa empresa.");
-  const cols = sheet.columns?.length ? sheet.columns : ["Empresa", "Contato", "Telefone", "Email", "Status"];
-  const novasLinhas = leadsArray.map(l => {
-    // Preenche as primeiras colunas com dados do lead; o resto fica em branco pro cliente organizar
+
+  let cols = sheet.columns?.length ? [...sheet.columns] : [];
+  const labelsPadrao = ["Empresa", "Contato", "Telefone", "Email", "Status"];
+  while (cols.length < labelsPadrao.length) cols.push(labelsPadrao[cols.length]); // garante ao menos essas 5 colunas
+
+  const rows = [...(sheet.rows || [])];
+  const linhaFromLead = (l) => {
     const base = [l.empresa || l.nome || "", l.socio || l.nome || "", l.tel1 || "", l.email || "", l.status || ""];
     return cols.map((_, i) => base[i] || "");
-  });
-  const rows = [...(sheet.rows || []), ...novasLinhas];
-  await savePincelabSheet(companyId, cols, rows);
-  return rows.length;
+  };
+
+  let restantes = [...leadsArray];
+  // Preenche primeiro nas linhas já existentes que estão totalmente vazias
+  for (let i = 0; i < rows.length && restantes.length > 0; i++) {
+    const vazia = !rows[i] || rows[i].every(c => !c);
+    if (vazia) {
+      rows[i] = linhaFromLead(restantes.shift());
+    }
+  }
+  // O que sobrar (não coube nas vazias) vai em linhas novas no final
+  restantes.forEach(l => rows.push(linhaFromLead(l)));
+
+  await savePincelabSheet(companyId, cols, rows, sheet.col_widths, sheet.styles);
+  return leadsArray.length;
 }
 
 /* ═══ COLABORADORES (EQUIPE) ═══ */
