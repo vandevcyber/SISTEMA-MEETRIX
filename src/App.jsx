@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { supabase, MASTER_EMAIL, MASTER_PASSWORD } from "./supabaseClient.js";
-import { ensureProfileAndCompany, fetchLeads, fetchCollabs, insertLeads, updateLeadDb, deleteLeadsDb, clearAllLeadsDb, inviteCollaborator, removeCollaboratorDb, uploadMedia, updateProfileFields, fetchGroups, createGroupDb, updateGroupMembersDb, fetchChatMessages, sendChatMessage, subscribeToChat, logExport, fetchExportLogs, fetchMasterCompanies, fetchMasterPoolLeads, importMasterLeads, distributeMasterLeads, clearMasterPool, fetchPlatformLeadsTotal, updateCompanyLeadsLimit, fetchMasterSupportMessages, replyMasterSupport, fetchCompanySupportMessages, sendSupportMessageDb, subscribeToSupport, toggleCompanyStatus, deleteCompanyMaster, fetchCompanyStatus } from "./db.js";
+import { ensureProfileAndCompany, fetchLeads, fetchCollabs, insertLeads, updateLeadDb, deleteLeadsDb, clearAllLeadsDb, inviteCollaborator, removeCollaboratorDb, uploadMedia, updateProfileFields, fetchGroups, createGroupDb, updateGroupMembersDb, fetchChatMessages, sendChatMessage, subscribeToChat, logExport, fetchExportLogs, fetchMasterCompanies, fetchMasterPoolLeads, importMasterLeads, distributeMasterLeads, clearMasterPool, fetchPlatformLeadsTotal, updateCompanyLeadsLimit, fetchMasterSupportMessages, replyMasterSupport, fetchCompanySupportMessages, sendSupportMessageDb, subscribeToSupport, toggleCompanyStatus, deleteCompanyMaster, fetchCompanyStatus, fetchPincelabSheet, savePincelabSheet, appendLeadsToPincelab } from "./db.js";
 import { gerarCodigoExportacao, embutirMarcaDagua } from "./watermark.js";
 
 const LOGO = "data:image/png;base64,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";
@@ -111,7 +111,7 @@ const HEADER_MAP = {
 };
 
 function normalizeHeader(h) {
-  const clean = h.trim().toLowerCase().replace(/['"]/g, "").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const clean = h.trim().toLowerCase().replace(/['"]/g, "").replace(/_/g, " ").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ").trim();
   return HEADER_MAP[clean] || HEADER_MAP[h.trim().toLowerCase().replace(/['"]/g, "")] || clean;
 }
 
@@ -153,6 +153,7 @@ function MenuIcon({ id }) {
     whatsapp: <svg {...s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 11.5a8.5 8.5 0 0 1-11.8 7.8L3 21l1.7-6.2A8.5 8.5 0 1 1 21 11.5z"/></svg>,
     chat: <svg {...s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>,
     "notícias": <svg {...s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 4h13v14a2 2 0 0 0 2 2H6a2 2 0 0 1-2-2z"/><path d="M17 4h3v3h-3zM8 8h8M8 12h8M8 16h5"/></svg>,
+    pincelab: <svg {...s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg>,
     pagamentos: <svg {...s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>,
     ajuda: <svg {...s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 1.5-2.5 2-2.5 3.5"/><circle cx="12" cy="17" r=".5" fill="currentColor"/></svg>,
     settings: <svg {...s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15 1.65 1.65 0 0 0 3.17 14H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9c.14.48.5.87 1 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>,
@@ -567,6 +568,20 @@ function LeadsPage({ leads, setLeads, collabs, isMaster, companyId, empresaNome,
 
   const exportCSV = exportCSVGratis;
 
+  const [sendingToPincelab, setSendingToPincelab] = useState(false);
+  const enviarParaPincelab = async () => {
+    setSendingToPincelab(true);
+    try {
+      const leadsSelecionados = leads.filter(l => selected.has(l.id));
+      await appendLeadsToPincelab(companyId, leadsSelecionados);
+      alert(`${leadsSelecionados.length} leads enviados para o PincelAb!`);
+      setSelected(new Set());
+    } catch (e) {
+      alert(e.message || "Erro ao enviar para o PincelAb.");
+    }
+    setSendingToPincelab(false);
+  };
+
 
   return (
     <div>
@@ -599,7 +614,7 @@ function LeadsPage({ leads, setLeads, collabs, isMaster, companyId, empresaNome,
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
         <span style={{ fontSize: 12, color: C.textSec }}>{filtered.length} leads</span>
         <span style={{ flex: 1 }} />
-        {selected.size > 0 && <><span style={{ fontSize: 12, fontWeight: 600, color: C.accent }}>{selected.size} selecionados</span><button onClick={() => setShowDist(true)} style={sBtn()}>Distribuir</button></>}
+        {selected.size > 0 && <><span style={{ fontSize: 12, fontWeight: 600, color: C.accent }}>{selected.size} selecionados</span><button onClick={() => setShowDist(true)} style={sBtn()}>Distribuir</button>{!isMaster && <button onClick={enviarParaPincelab} disabled={sendingToPincelab} style={sBtn(C.blueLight, C.blue)}>{sendingToPincelab ? "Enviando..." : "Enviar p/ PincelAb"}</button>}</>}
       </div>
 
       <div style={{ ...sCard, overflow: "hidden" }}>
@@ -1420,6 +1435,102 @@ function ManutencaoPage({ nome }) {
   );
 }
 
+/* ═══ PINCELAB (planilha livre, estilo Excel/Sheets) ═══ */
+function PincelabPage({ companyId }) {
+  const [columns, setColumns] = useState([]);
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const saveTimer = useRef(null);
+  const loadedOnce = useRef(false);
+
+  useEffect(() => {
+    if (!companyId) return;
+    (async () => {
+      setLoading(true);
+      const sheet = await fetchPincelabSheet(companyId);
+      if (sheet) {
+        setColumns(sheet.columns || ["Coluna A", "Coluna B", "Coluna C", "Coluna D"]);
+        setRows(sheet.rows || []);
+      }
+      loadedOnce.current = true;
+      setLoading(false);
+    })();
+  }, [companyId]);
+
+  // Autosave com debounce, pra não gravar a cada tecla digitada
+  useEffect(() => {
+    if (!loadedOnce.current || loading) return;
+    setSaving(true);
+    clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(async () => {
+      await savePincelabSheet(companyId, columns, rows);
+      setSaving(false);
+    }, 900);
+    return () => clearTimeout(saveTimer.current);
+  }, [columns, rows]);
+
+  const addColumn = () => setColumns(prev => [...prev, `Coluna ${String.fromCharCode(65 + prev.length)}`]);
+  const removeColumn = (idx) => { setColumns(prev => prev.filter((_, i) => i !== idx)); setRows(prev => prev.map(r => r.filter((_, i) => i !== idx))); };
+  const renameColumn = (idx, val) => setColumns(prev => prev.map((c, i) => i === idx ? val : c));
+  const addRow = () => setRows(prev => [...prev, columns.map(() => "")]);
+  const removeRow = (idx) => setRows(prev => prev.filter((_, i) => i !== idx));
+  const setCell = (r, c, val) => setRows(prev => prev.map((row, i) => i === r ? row.map((cell, j) => j === c ? val : cell) : row));
+  const limparTudo = () => { if (window.confirm("Limpar toda a planilha do PincelAb? Essa ação não pode ser desfeita.")) { setColumns(["Coluna A", "Coluna B", "Coluna C", "Coluna D"]); setRows([]); } };
+
+  if (loading) return <div style={{ padding: 40, textAlign: "center", color: C.textSec, fontSize: 12 }}>Carregando PincelAb...</div>;
+
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+        <div>
+          <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>PincelAb</h2>
+          <div style={{ fontSize: 11, color: C.textSec, marginTop: 2 }}>Sua planilha livre — organize os leads do seu jeito. {saving ? "Salvando..." : "Tudo salvo."}</div>
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button onClick={addColumn} style={sBtn(C.bg, C.accent)}>+ Coluna</button>
+          <button onClick={addRow} style={sBtn()}>+ Linha</button>
+          <button onClick={limparTudo} style={sBtn(C.red)}>Limpar tudo</button>
+        </div>
+      </div>
+      <div style={{ ...sCard, overflow: "auto", maxHeight: "70vh" }}>
+        <table style={{ borderCollapse: "collapse", fontSize: 12, minWidth: "100%" }}>
+          <thead>
+            <tr style={{ background: C.bg }}>
+              <th style={{ padding: "8px 10px", width: 32, borderBottom: `1px solid ${C.border}`, borderRight: `1px solid ${C.border}` }}></th>
+              {columns.map((col, ci) => (
+                <th key={ci} style={{ padding: "6px 8px", borderBottom: `1px solid ${C.border}`, borderRight: `1px solid ${C.border}`, minWidth: 140 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                    <input value={col} onChange={e => renameColumn(ci, e.target.value)} style={{ ...sInput, padding: "4px 6px", fontWeight: 700, fontSize: 11 }} />
+                    <button onClick={() => removeColumn(ci)} title="Remover coluna" style={{ background: "none", border: "none", color: C.red, cursor: "pointer", fontSize: 14, lineHeight: 1 }}>×</button>
+                  </div>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.length === 0 && (
+              <tr><td colSpan={columns.length + 1} style={{ padding: 24, textAlign: "center", color: C.textLight, fontSize: 12 }}>Planilha vazia. Clique em "+ Linha" pra começar, ou mande leads da tela de Leads direto pra cá.</td></tr>
+            )}
+            {rows.map((row, ri) => (
+              <tr key={ri} style={{ borderBottom: `1px solid ${C.border}` }}>
+                <td style={{ padding: "4px 8px", textAlign: "center", borderRight: `1px solid ${C.border}`, color: C.textLight, fontSize: 10 }}>
+                  <button onClick={() => removeRow(ri)} title="Remover linha" style={{ background: "none", border: "none", color: C.red, cursor: "pointer", fontSize: 13 }}>×</button>
+                </td>
+                {columns.map((_, ci) => (
+                  <td key={ci} style={{ padding: 0, borderRight: `1px solid ${C.border}` }}>
+                    <input value={row[ci] || ""} onChange={e => setCell(ri, ci, e.target.value)} style={{ width: "100%", boxSizing: "border-box", border: "none", padding: "7px 8px", fontSize: 12, fontFamily: font, outline: "none", background: "transparent" }} />
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 function SettingsPage({ profile, currentUser, onProfileUpdate }) {
   const [uploading, setUploading] = useState(false);
   const avatarUrl = profile?.avatar_url;
@@ -1918,16 +2029,16 @@ export default function App() {
 
   // Permissões por cargo: quais páginas cada tipo de colaborador pode ver
   const PERMISSIONS = {
-    admin: ["dashboard", "leads", "funil", "negociações", "equipe", "whatsapp", "chat", "notícias", "pagamentos", "ajuda", "settings"],
-    gestor: ["dashboard", "leads", "funil", "negociações", "equipe", "whatsapp", "chat", "ajuda", "settings"],
-    sdr: ["dashboard", "leads", "funil", "chat", "ajuda", "settings"],
-    bdr: ["dashboard", "leads", "funil", "chat", "ajuda", "settings"],
-    closer: ["dashboard", "leads", "funil", "negociações", "chat", "ajuda", "settings"],
+    admin: ["dashboard", "leads", "funil", "negociações", "equipe", "pincelab", "whatsapp", "chat", "notícias", "pagamentos", "ajuda", "settings"],
+    gestor: ["dashboard", "leads", "funil", "negociações", "equipe", "pincelab", "whatsapp", "chat", "ajuda", "settings"],
+    sdr: ["dashboard", "leads", "funil", "pincelab", "chat", "ajuda", "settings"],
+    bdr: ["dashboard", "leads", "funil", "pincelab", "chat", "ajuda", "settings"],
+    closer: ["dashboard", "leads", "funil", "negociações", "pincelab", "chat", "ajuda", "settings"],
   };
 
   const allMenuItems = [
     { id: "dashboard", label: "Dashboard" }, { id: "leads", label: "Leads" }, { id: "funil", label: "Funil de Vendas" },
-    { id: "negociações", label: "Negociações" }, { id: "equipe", label: "Equipe" }, { id: "whatsapp", label: "WhatsApp" },
+    { id: "negociações", label: "Negociações" }, { id: "equipe", label: "Equipe" }, { id: "pincelab", label: "PincelAb" }, { id: "whatsapp", label: "WhatsApp" },
     { id: "chat", label: "Chat Interno" }, { id: "notícias", label: "Notícias" }, { id: "pagamentos", label: "Pagamentos" },
     { id: "ajuda", label: "Ajuda" }, { id: "settings", label: "Configurações" },
   ];
@@ -2018,6 +2129,7 @@ export default function App() {
           {page === "dashboard" && <DashboardPage leads={visibleLeads} collabs={collabs} />}
           {page === "leads" && <LeadsPage leads={visibleLeads} setLeads={setLeads} collabs={collabs} isMaster={role === "master"} companyId={profile?.company_id} empresaNome={profile?.nome} userEmail={currentUser?.email} initialSearch={globalSearch} masterCompanies={masterCompanies} onImportMaster={reloadMasterData} onDistributeMaster={reloadMasterData} onClearMaster={reloadMasterData} platformTotal={platformTotal} />}
           {page === "funil" && <FunnelPage leads={visibleLeads} setLeads={setLeads} collabs={collabs} />}
+          {page === "pincelab" && <PincelabPage companyId={profile?.company_id} />}
           {page === "negociações" && <NegociaçõesPage leads={visibleLeads} setLeads={setLeads} collabs={collabs} />}
           {page === "equipe" && <TeamPage collabs={collabs} setCollabs={setCollabs} leads={leads} companyId={profile?.company_id} />}
           {page === "chat" && <ChatPage collabs={collabs} companyId={profile?.company_id} currentUser={currentUser} profile={profile} onProfileUpdate={setProfile} />}

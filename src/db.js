@@ -245,6 +245,44 @@ export function subscribeToSupport(companyId, onMessage) {
   return () => supabase.removeChannel(sub);
 }
 
+/* ═══ PINCELAB (planilha livre) ═══ */
+
+export async function fetchPincelabSheet(companyId) {
+  const { data, error } = await supabase.from("pincelab_sheets").select("*").eq("company_id", companyId).maybeSingle();
+  if (error) { console.error(error); return null; }
+  if (data) return data;
+  // Primeira vez: cria a planilha vazia pra essa empresa
+  const { data: created, error: createErr } = await supabase
+    .from("pincelab_sheets")
+    .insert({ company_id: companyId })
+    .select()
+    .single();
+  if (createErr) { console.error(createErr); return null; }
+  return created;
+}
+
+export async function savePincelabSheet(companyId, columns, rows) {
+  const { error } = await supabase
+    .from("pincelab_sheets")
+    .update({ columns, rows, updated_at: new Date().toISOString() })
+    .eq("company_id", companyId);
+  if (error) console.error(error);
+}
+
+export async function appendLeadsToPincelab(companyId, leadsArray) {
+  const sheet = await fetchPincelabSheet(companyId);
+  if (!sheet) throw new Error("Não foi possível abrir o PincelAb dessa empresa.");
+  const cols = sheet.columns?.length ? sheet.columns : ["Empresa", "Contato", "Telefone", "Email", "Status"];
+  const novasLinhas = leadsArray.map(l => {
+    // Preenche as primeiras colunas com dados do lead; o resto fica em branco pro cliente organizar
+    const base = [l.empresa || l.nome || "", l.socio || l.nome || "", l.tel1 || "", l.email || "", l.status || ""];
+    return cols.map((_, i) => base[i] || "");
+  });
+  const rows = [...(sheet.rows || []), ...novasLinhas];
+  await savePincelabSheet(companyId, cols, rows);
+  return rows.length;
+}
+
 /* ═══ COLABORADORES (EQUIPE) ═══ */
 
 export async function fetchCollabs(companyId) {
