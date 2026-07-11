@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { supabase, MASTER_EMAIL, MASTER_PASSWORD } from "./supabaseClient.js";
-import { ensureProfileAndCompany, fetchLeads, fetchCollabs, insertLeads, updateLeadDb, deleteLeadsDb, clearAllLeadsDb, inviteCollaborator, removeCollaboratorDb, uploadMedia, updateProfileFields, fetchGroups, createGroupDb, updateGroupMembersDb, fetchChatMessages, sendChatMessage, subscribeToChat, logExport, fetchExportLogs, fetchMasterCompanies, fetchMasterPoolLeads, importMasterLeads, distributeMasterLeads, clearMasterPool, fetchPlatformLeadsTotal, updateCompanyLeadsLimit, fetchMasterSupportMessages, replyMasterSupport, fetchCompanySupportMessages, sendSupportMessageDb, subscribeToSupport } from "./db.js";
+import { ensureProfileAndCompany, fetchLeads, fetchCollabs, insertLeads, updateLeadDb, deleteLeadsDb, clearAllLeadsDb, inviteCollaborator, removeCollaboratorDb, uploadMedia, updateProfileFields, fetchGroups, createGroupDb, updateGroupMembersDb, fetchChatMessages, sendChatMessage, subscribeToChat, logExport, fetchExportLogs, fetchMasterCompanies, fetchMasterPoolLeads, importMasterLeads, distributeMasterLeads, clearMasterPool, fetchPlatformLeadsTotal, updateCompanyLeadsLimit, fetchMasterSupportMessages, replyMasterSupport, fetchCompanySupportMessages, sendSupportMessageDb, subscribeToSupport, toggleCompanyStatus, deleteCompanyMaster, fetchCompanyStatus } from "./db.js";
 import { gerarCodigoExportacao, embutirMarcaDagua } from "./watermark.js";
 
 const LOGO = "data:image/png;base64,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";
@@ -473,6 +473,8 @@ function LeadsPage({ leads, setLeads, collabs, isMaster, companyId, empresaNome,
       && (!fSeg || (l.segmento || l.cnae) === fSeg) && (!fUF || l.estado === fUF) && (!fStatus || l.status === fStatus);
   }), [leads, search, fSeg, fUF, fStatus]);
 
+  const [importProgress, setImportProgress] = useState(null); // { done, total }
+
   const handleCSV = f => {
     if (!f) return;
     const r = new FileReader();
@@ -480,8 +482,9 @@ function LeadsPage({ leads, setLeads, collabs, isMaster, companyId, empresaNome,
       const p = parseCSV(e.target.result);
       if (isMaster) {
         setImportingMaster(true);
+        setImportProgress({ done: 0, total: p.length });
         try {
-          const inseridos = await importMasterLeads(p);
+          const inseridos = await importMasterLeads(p, (done, total) => setImportProgress({ done, total }));
           setImportResult(inseridos);
           setShowImport(false);
           await onImportMaster?.(); // recarrega o estoque de leads real do banco
@@ -489,6 +492,7 @@ function LeadsPage({ leads, setLeads, collabs, isMaster, companyId, empresaNome,
           alert(err.message || "Erro ao importar leads. Confira se a chave de serviço do Supabase está configurada na Vercel.");
         }
         setImportingMaster(false);
+        setImportProgress(null);
       } else {
         setLeads(prev => [...prev, ...p]);
         setImportResult(p.length);
@@ -578,7 +582,10 @@ function LeadsPage({ leads, setLeads, collabs, isMaster, companyId, empresaNome,
         </div>
       </div>
       {importResult > 0 && <div style={{ background: C.greenLight, border: `1px solid ${C.green}`, borderRadius: 6, padding: "10px 16px", marginBottom: 14, fontSize: 12, color: C.green, fontWeight: 600 }}>{importResult} leads importados com sucesso.</div>}
-      {importingMaster && <div style={{ background: C.accentLight, border: `1px solid ${C.accent}`, borderRadius: 6, padding: "10px 16px", marginBottom: 14, fontSize: 12, color: C.accent, fontWeight: 600 }}>Importando e salvando os leads no banco, aguarde...</div>}
+      {importingMaster && <div style={{ background: C.accentLight, border: `1px solid ${C.accent}`, borderRadius: 6, padding: "10px 16px", marginBottom: 14, fontSize: 12, color: C.accent, fontWeight: 600 }}>
+        Importando e salvando os leads no banco, aguarde{importProgress ? ` (${importProgress.done.toLocaleString("pt-BR")} de ${importProgress.total.toLocaleString("pt-BR")})` : "..."}
+        {importProgress && importProgress.total > 0 && <div style={{ background: "#fff", borderRadius: 4, height: 6, marginTop: 6, overflow: "hidden" }}><div style={{ height: "100%", width: `${Math.round((importProgress.done / importProgress.total) * 100)}%`, background: C.accent, transition: "width .2s" }} /></div>}
+      </div>}
 
       <div style={{ ...sCard, padding: 12, marginBottom: 12 }}>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -597,10 +604,10 @@ function LeadsPage({ leads, setLeads, collabs, isMaster, companyId, empresaNome,
 
       <div style={{ ...sCard, overflow: "hidden" }}>
         <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, minWidth: 1200 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, minWidth: 1800 }}>
             <thead><tr style={{ background: C.bg, borderBottom: `1px solid ${C.border}` }}>
               <th style={{ padding: "10px 12px", width: 32 }}><input type="checkbox" checked={selected.size === filtered.length && filtered.length > 0} onChange={toggleAll} /></th>
-              {["CNPJ", "Razão Social/Nome", "Nome do Sócio", "Dívida Ativa", "Dívida Total", "Segmento", "Cidade", "Estado", "Telefone", "Telefone 2", "E-mail", "Rede Social", "Status", ""].map(h => <th key={h} style={{ padding: "10px 12px", textAlign: "left", fontWeight: 700, color: C.textSec, fontSize: 10, textTransform: "uppercase", whiteSpace: "nowrap" }}>{h}</th>)}
+              {["CNPJ", "Razão Social/Nome", "Nome do Sócio", "Dívida Ativa", "Dívida Total", "Segmento", "CNAE(s)", "Cidade", "Bairro", "Estado", "Telefone", "Telefone 2", "E-mail", "Faturamento", "Funcionários", "Regime Tributário", "Rede Social", "Status", ""].map(h => <th key={h} style={{ padding: "10px 12px", textAlign: "left", fontWeight: 700, color: C.textSec, fontSize: 10, textTransform: "uppercase", whiteSpace: "nowrap" }}>{h}</th>)}
             </tr></thead>
             <tbody>
               {filtered.slice(0, 100).map(l => (
@@ -611,12 +618,17 @@ function LeadsPage({ leads, setLeads, collabs, isMaster, companyId, empresaNome,
                   <td style={{ padding: "10px 12px", fontSize: 11 }}>{l.socio || "—"}</td>
                   <td style={{ padding: "10px 12px", fontSize: 11, color: C.textSec }}>{l.dividaAtiva || "—"}</td>
                   <td style={{ padding: "10px 12px", fontSize: 11, color: l.divida && l.divida !== "R$ 0,00" ? C.red : C.green, fontWeight: 600 }}>{l.divida || "—"}</td>
-                  <td style={{ padding: "10px 12px", fontSize: 11 }}>{l.segmento || l.cnae || "—"}</td>
+                  <td style={{ padding: "10px 12px", fontSize: 11 }}>{l.segmento || "—"}</td>
+                  <td style={{ padding: "10px 12px", fontSize: 11, whiteSpace: "nowrap" }}>{l.cnae || "—"}</td>
                   <td style={{ padding: "10px 12px", fontSize: 11 }}>{l.cidade || "—"}</td>
+                  <td style={{ padding: "10px 12px", fontSize: 11 }}>{l.bairro || "—"}</td>
                   <td style={{ padding: "10px 12px", fontSize: 11 }}>{l.estado || "—"}</td>
                   <td style={{ padding: "10px 12px", fontSize: 11, whiteSpace: "nowrap" }}>{l.tel1 || "—"}</td>
                   <td style={{ padding: "10px 12px", fontSize: 11, whiteSpace: "nowrap" }}>{l.tel2 || "—"}</td>
                   <td style={{ padding: "10px 12px", fontSize: 11 }}>{l.email || "—"}</td>
+                  <td style={{ padding: "10px 12px", fontSize: 11, whiteSpace: "nowrap" }}>{l.faturamento || "—"}</td>
+                  <td style={{ padding: "10px 12px", fontSize: 11, whiteSpace: "nowrap" }}>{l.funcionarios || "—"}</td>
+                  <td style={{ padding: "10px 12px", fontSize: 11, whiteSpace: "nowrap" }}>{l.tributacao || "—"}</td>
                   <td style={{ padding: "10px 12px", fontSize: 11, color: C.accent }}>{l.redeSocial || "—"}</td>
                   <td style={{ padding: "10px 12px" }}><Badge bg={getStatusColor(l.status).bg} color={getStatusColor(l.status).color}>{l.status}</Badge></td>
                   <td style={{ padding: "10px 12px" }}><button onClick={() => setDetail(l)} style={{ background: "none", border: "none", color: C.accent, cursor: "pointer", fontSize: 11, fontWeight: 700, fontFamily: font }}>Abrir</button></td>
@@ -1495,10 +1507,12 @@ function MasterExportLogs() {
   );
 }
 
-function MasterPanel({ companies, poolCount, loading, onUpdateLimit }) {
+function MasterPanel({ companies, poolCount, loading, onUpdateLimit, onToggleStatus, onDeleteCompany }) {
   const totalDistribuidos = companies.reduce((acc, c) => acc + (c.leadsUsados || 0), 0);
   const [edits, setEdits] = useState({});
   const [saving, setSaving] = useState(null);
+  const [toggling, setToggling] = useState(null);
+  const [deleting, setDeleting] = useState(null);
 
   const salvar = async (companyId) => {
     const novo = edits[companyId];
@@ -1513,8 +1527,31 @@ function MasterPanel({ companies, poolCount, loading, onUpdateLimit }) {
     setSaving(null);
   };
 
-  return (<div><h2 style={{ fontSize: 18, fontWeight: 700, margin: "0 0 20px" }}>Painel Master</h2><div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 20 }}>{[{ t: "Clientes ativos", v: companies.length, c: C.accent }, { t: "Leads no estoque", v: poolCount, c: C.orange }, { t: "Leads distribuídos", v: totalDistribuidos, c: C.blue }].map((s, i) => <div key={i} style={{ ...sCard, padding: "18px 20px", flex: 1, minWidth: 150 }}><div style={sLabel}>{s.t}</div><div style={{ fontSize: 26, fontWeight: 800, color: s.c, marginTop: 4 }}>{loading ? "…" : s.v}</div></div>)}</div>
-    <div style={{ ...sCard, overflow: "hidden", marginBottom: 20 }}><div style={{ padding: "14px 18px", borderBottom: `1px solid ${C.border}`, fontWeight: 700, fontSize: 14 }}>Clientes</div><div style={{ overflowX: "auto" }}>{loading ? <div style={{ padding: 20, fontSize: 12, color: C.textSec }}>Carregando clientes...</div> : companies.length === 0 ? <div style={{ padding: 20, fontSize: 12, color: C.textSec }}>Nenhum cliente cadastrado ainda.</div> : <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}><thead><tr style={{ background: C.bg, borderBottom: `1px solid ${C.border}` }}>{["ID", "Empresa", "Plano", "Leads atribuídos", "Limite (cota)", "Status"].map(h => <th key={h} style={{ padding: "10px 12px", textAlign: "left", fontWeight: 700, color: C.textSec, fontSize: 10, textTransform: "uppercase", whiteSpace: "nowrap" }}>{h}</th>)}</tr></thead><tbody>{companies.map(c => { const limite = c.leadsLimite || 1; const pct = Math.min(100, Math.round((c.leadsUsados / limite) * 100)); return (<tr key={c.id} style={{ borderBottom: `1px solid ${C.border}` }}><td style={{ padding: "10px 12px", fontFamily: "monospace", fontSize: 11, fontWeight: 600 }}>{String(c.id).slice(0, 8)}</td><td style={{ padding: "10px 12px", fontWeight: 600 }}>{c.empresa}</td><td style={{ padding: "10px 12px" }}><Badge>{PLANS.find(p => p.id === c.plano)?.name || c.plano}</Badge></td><td style={{ padding: "10px 12px" }}><div style={{ display: "flex", alignItems: "center", gap: 6 }}><div style={{ background: C.bg, borderRadius: 4, height: 6, width: 50, overflow: "hidden" }}><div style={{ height: "100%", width: `${pct}%`, background: pct >= 80 ? C.orange : C.accent, borderRadius: 4 }} /></div><span style={{ fontSize: 10, color: pct >= 80 ? C.orange : C.textSec, fontWeight: 600 }}>{c.leadsUsados}</span></div></td><td style={{ padding: "10px 12px" }}><div style={{ display: "flex", gap: 4, alignItems: "center" }}><input type="number" min="0" value={edits[c.id] !== undefined ? edits[c.id] : c.leadsLimite || 0} onChange={e => setEdits(prev => ({ ...prev, [c.id]: e.target.value }))} style={{ ...sInput, width: 80, padding: "4px 8px" }} /><button onClick={() => salvar(c.id)} disabled={saving === c.id} style={{ ...sBtn(), padding: "4px 10px", fontSize: 11 }}>{saving === c.id ? "..." : "Salvar"}</button></div></td><td style={{ padding: "10px 12px" }}><Badge bg={C.greenLight} color={C.green}>Ativo</Badge></td></tr>); })}</tbody></table>}</div></div>
+  const alternarStatus = async (c) => {
+    const novoStatus = c.status === "bloqueado" ? "ativo" : "bloqueado";
+    if (novoStatus === "bloqueado" && !window.confirm(`Bloquear "${c.empresa}"? Ninguém da equipe dessa empresa vai conseguir acessar o sistema até você desbloquear.`)) return;
+    setToggling(c.id);
+    try {
+      await onToggleStatus(c.id, novoStatus);
+    } catch (e) {
+      alert(e.message || "Erro ao alterar o status.");
+    }
+    setToggling(null);
+  };
+
+  const excluir = async (c) => {
+    if (!window.confirm(`Excluir "${c}" para sempre? Todos os logins da equipe são removidos. Os leads que estavam com esse cliente voltam pro seu estoque (não são perdidos). Essa ação não pode ser desfeita.`)) return;
+    setDeleting(c.id);
+    try {
+      await onDeleteCompany(c.id);
+    } catch (e) {
+      alert(e.message || "Erro ao excluir o cliente.");
+    }
+    setDeleting(null);
+  };
+
+  return (<div><h2 style={{ fontSize: 18, fontWeight: 700, margin: "0 0 20px" }}>Painel Master</h2><div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 20 }}>{[{ t: "Clientes ativos", v: companies.filter(c => c.status !== "bloqueado").length, c: C.accent }, { t: "Leads no estoque", v: poolCount, c: C.orange }, { t: "Leads distribuídos", v: totalDistribuidos, c: C.blue }].map((s, i) => <div key={i} style={{ ...sCard, padding: "18px 20px", flex: 1, minWidth: 150 }}><div style={sLabel}>{s.t}</div><div style={{ fontSize: 26, fontWeight: 800, color: s.c, marginTop: 4 }}>{loading ? "…" : s.v}</div></div>)}</div>
+    <div style={{ ...sCard, overflow: "hidden", marginBottom: 20 }}><div style={{ padding: "14px 18px", borderBottom: `1px solid ${C.border}`, fontWeight: 700, fontSize: 14 }}>Clientes</div><div style={{ overflowX: "auto" }}>{loading ? <div style={{ padding: 20, fontSize: 12, color: C.textSec }}>Carregando clientes...</div> : companies.length === 0 ? <div style={{ padding: 20, fontSize: 12, color: C.textSec }}>Nenhum cliente cadastrado ainda.</div> : <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}><thead><tr style={{ background: C.bg, borderBottom: `1px solid ${C.border}` }}>{["ID", "Empresa", "Plano", "Leads atribuídos", "Limite (cota)", "Status", "Ações"].map(h => <th key={h} style={{ padding: "10px 12px", textAlign: "left", fontWeight: 700, color: C.textSec, fontSize: 10, textTransform: "uppercase", whiteSpace: "nowrap" }}>{h}</th>)}</tr></thead><tbody>{companies.map(c => { const limite = c.leadsLimite || 1; const pct = Math.min(100, Math.round((c.leadsUsados / limite) * 100)); const bloqueado = c.status === "bloqueado"; return (<tr key={c.id} style={{ borderBottom: `1px solid ${C.border}`, opacity: bloqueado ? 0.6 : 1 }}><td style={{ padding: "10px 12px", fontFamily: "monospace", fontSize: 11, fontWeight: 600 }}>{String(c.id).slice(0, 8)}</td><td style={{ padding: "10px 12px", fontWeight: 600 }}>{c.empresa}</td><td style={{ padding: "10px 12px" }}><Badge>{PLANS.find(p => p.id === c.plano)?.name || c.plano}</Badge></td><td style={{ padding: "10px 12px" }}><div style={{ display: "flex", alignItems: "center", gap: 6 }}><div style={{ background: C.bg, borderRadius: 4, height: 6, width: 50, overflow: "hidden" }}><div style={{ height: "100%", width: `${pct}%`, background: pct >= 80 ? C.orange : C.accent, borderRadius: 4 }} /></div><span style={{ fontSize: 10, color: pct >= 80 ? C.orange : C.textSec, fontWeight: 600 }}>{c.leadsUsados}</span></div></td><td style={{ padding: "10px 12px" }}><div style={{ display: "flex", gap: 4, alignItems: "center" }}><input type="number" min="0" value={edits[c.id] !== undefined ? edits[c.id] : c.leadsLimite || 0} onChange={e => setEdits(prev => ({ ...prev, [c.id]: e.target.value }))} style={{ ...sInput, width: 80, padding: "4px 8px" }} /><button onClick={() => salvar(c.id)} disabled={saving === c.id} style={{ ...sBtn(), padding: "4px 10px", fontSize: 11 }}>{saving === c.id ? "..." : "Salvar"}</button></div></td><td style={{ padding: "10px 12px" }}>{bloqueado ? <Badge bg="#FEF2F2" color={C.red}>Bloqueado</Badge> : <Badge bg={C.greenLight} color={C.green}>Ativo</Badge>}</td><td style={{ padding: "10px 12px" }}><div style={{ display: "flex", gap: 6 }}><button onClick={() => alternarStatus(c)} disabled={toggling === c.id} style={{ ...sBtn(bloqueado ? C.green : C.orange), padding: "4px 10px", fontSize: 11 }}>{toggling === c.id ? "..." : bloqueado ? "Desbloquear" : "Bloquear"}</button><button onClick={() => excluir({ id: c.id, empresa: c.empresa })} disabled={deleting === c.id} style={{ ...sBtn(C.red), padding: "4px 10px", fontSize: 11 }}>{deleting === c.id ? "..." : "Excluir"}</button></div></td></tr>); })}</tbody></table>}</div></div>
     <MasterExportLogs />
     <MasterSupportInbox />
     </div>); }
@@ -1781,12 +1818,20 @@ export default function App() {
     setLoadingMaster(false);
   };
 
+  const [blocked, setBlocked] = useState(false);
+
   // Depois do login (não-master), garante perfil/empresa e carrega os dados reais
   const handleLoginSuccess = async (user) => {
     setCurrentUser(user);
     setLoadingData(true);
     try {
       const prof = await ensureProfileAndCompany(user);
+      const status = await fetchCompanyStatus(prof.company_id);
+      if (status === "bloqueado") {
+        setBlocked(true);
+        setLoadingData(false);
+        return; // não carrega leads, equipe, nada — acesso totalmente bloqueado
+      }
       setProfile(prof);
       setRole(prof.cargo === "admin" ? "admin" : "colaborador");
       const [dbLeads, dbCollabs] = await Promise.all([
@@ -1847,6 +1892,19 @@ export default function App() {
       onLoginSuccess={handleLoginSuccess}
       onMasterSuccess={() => { setCurrentUser({ email: MASTER_EMAIL }); setRole("master"); setPage("master"); setView("app"); reloadMasterData(); }}
     />
+  );
+
+  if (blocked) return (
+    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: font, background: C.bg, padding: 20 }}>
+      <div style={{ ...sCard, maxWidth: 420, padding: 32, textAlign: "center" }}>
+        <div style={{ width: 56, height: 56, borderRadius: "50%", background: "#FEF2F2", margin: "0 auto 16px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke={C.red} strokeWidth="2.5"><circle cx="12" cy="12" r="10" /><path d="M4.9 4.9l14.2 14.2" /></svg>
+        </div>
+        <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>Acesso bloqueado</div>
+        <div style={{ fontSize: 13, color: C.textSec, marginBottom: 20 }}>Sua conta está temporariamente bloqueada. Entre em contato com o suporte da Meetrix para regularizar o acesso.</div>
+        <button onClick={() => { setBlocked(false); setView("landing"); setCurrentUser(null); }} style={{ ...sBtn(), width: "100%" }}>Voltar</button>
+      </div>
+    </div>
   );
 
   if (loadingData) return (
@@ -1968,7 +2026,7 @@ export default function App() {
           {page === "pagamentos" && <ManutencaoPage nome="Pagamentos" />}
           {page === "ajuda" && <HelpPage />}
           {page === "settings" && <SettingsPage profile={profile} currentUser={currentUser} onProfileUpdate={setProfile} />}
-          {page === "master" && <MasterPanel companies={masterCompanies} poolCount={poolCount} loading={loadingMaster} onUpdateLimit={async (companyId, limit) => { await updateCompanyLeadsLimit(companyId, limit); await reloadMasterData(); }} />}
+          {page === "master" && <MasterPanel companies={masterCompanies} poolCount={poolCount} loading={loadingMaster} onUpdateLimit={async (companyId, limit) => { await updateCompanyLeadsLimit(companyId, limit); await reloadMasterData(); }} onToggleStatus={async (companyId, status) => { await toggleCompanyStatus(companyId, status); await reloadMasterData(); }} onDeleteCompany={async (companyId) => { await deleteCompanyMaster(companyId); await reloadMasterData(); }} />}
         </div>
       </div>
       <SupportChat show={showSupport} onClose={() => setShowSupport(false)} userEmail={currentUser?.email} companyId={profile?.company_id} />

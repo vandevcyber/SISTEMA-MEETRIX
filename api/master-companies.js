@@ -34,6 +34,7 @@ export default async function handler(req, res) {
           plano: c.plano,
           leadsLimite: c.leads_limit,
           leadsUsados: count || 0,
+          status: c.status || "ativo",
         };
       })
     );

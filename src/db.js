@@ -123,14 +123,26 @@ export async function fetchMasterPoolLeads({ search = "", limit = 2000, offset =
   return data.leads.map(mapLeadFromDb);
 }
 
-export async function importMasterLeads(leadsArray) {
-  const r = await fetch("/api/master-import-leads", {
-    method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ leads: leadsArray }),
-  });
-  const data = await r.json();
-  if (!r.ok) throw new Error(data.error || "Erro ao importar leads");
-  return data.inseridos;
+export async function importMasterLeads(leadsArray, onProgress) {
+  const BATCH = 300; // bem abaixo do limite de ~4.5MB por requisição da Vercel
+  let totalInseridos = 0;
+  for (let i = 0; i < leadsArray.length; i += BATCH) {
+    const batch = leadsArray.slice(i, i + BATCH);
+    const r = await fetch("/api/master-import-leads", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ leads: batch }),
+    });
+    let data;
+    try {
+      data = await r.json();
+    } catch {
+      throw new Error(`O servidor respondeu de um jeito inesperado (status ${r.status}). Tente importar um arquivo menor ou em partes.`);
+    }
+    if (!r.ok) throw new Error(data.error || "Erro ao importar leads");
+    totalInseridos += data.inseridos;
+    onProgress?.(totalInseridos, leadsArray.length);
+  }
+  return totalInseridos;
 }
 
 export async function distributeMasterLeads(leadIds, companyId) {
@@ -153,6 +165,31 @@ export async function fetchPlatformLeadsTotal() {
   const { data, error } = await supabase.rpc("get_platform_leads_total");
   if (error) { console.error(error); return 0; }
   return data;
+}
+
+export async function toggleCompanyStatus(companyId, status) {
+  const r = await fetch("/api/master-toggle-company", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ companyId, status }),
+  });
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.error || "Erro ao atualizar o status do cliente");
+}
+
+export async function deleteCompanyMaster(companyId) {
+  const r = await fetch("/api/master-delete-company", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ companyId }),
+  });
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.error || "Erro ao excluir o cliente");
+}
+
+// Usado logo após o login do cliente, pra saber se a empresa está bloqueada
+export async function fetchCompanyStatus(companyId) {
+  const { data, error } = await supabase.from("companies").select("status").eq("id", companyId).maybeSingle();
+  if (error) { console.error(error); return "ativo"; }
+  return data?.status || "ativo";
 }
 
 export async function updateCompanyLeadsLimit(companyId, leadsLimit) {
